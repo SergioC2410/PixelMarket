@@ -1,2 +1,2 @@
 # PixelMarket
-Mercado Libre-like e-commerce platform with user auth (buyer/seller roles), product catalog, sales history, digital invoices, and payment methods (cash, transfers). Built with Django, Vue.js, MySQL, and Bootstrap. Includes seller ratings and payment plans. Collaborative project by 7 developers.
+Plataforma de e-commerce tipo Mercado Libre con autenticación de usuarios (comprador/vendedor), catálogo de productos, historial de ventas, facturas digitales y métodos de pago (efectivo, transferencias). Desarrollado con Django, Vue.js, MySQL y Bootstrap. Incluye valoraciones de vendedores y planes de pago. Proyecto colaborativo de 7 desarrolladores.
