@@ -1,20 +1,62 @@
 <template>
   <div class="container mt-5">
+    <!-- Breadcrumbs -->
+    <b-breadcrumb :items="breadcrumbs" class="mb-4"></b-breadcrumb>
+
+    <!-- Barra de búsqueda y filtros -->
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2>Productos {{ categoriaActual ? `- ${categoriaActual}` : '' }}</h2>
-      <button @click="$router.go(-1)" class="btn btn-outline-secondary">
-        Volver a categorías
-      </button>
-    </div>
-    
-    <div class="row row-cols-1 row-cols-md-3 g-4">
-      <div class="col" v-for="producto in productosFiltrados" :key="producto.id">
-        <ProductoCard :producto="producto" />
+      <div>
+        <b-form-input
+          v-model="busqueda"
+          placeholder="Buscar productos..."
+          class="me-2"
+        ></b-form-input>
+        <b-button @click="mostrarFiltros = !mostrarFiltros" variant="outline-secondary">
+          <i class="fas fa-filter"></i> Filtros
+        </b-button>
       </div>
     </div>
 
-    <div v-if="productosFiltrados.length === 0" class="alert alert-warning mt-4">
-      No hay productos disponibles en esta categoría
+    <!-- Filtros -->
+    <b-collapse v-model="mostrarFiltros" class="mb-4">
+      <b-row>
+        <b-col md="4">
+          <b-form-select v-model="filtroPrecio" :options="opcionesPrecio" class="mb-2"></b-form-select>
+        </b-col>
+        <b-col md="4">
+          <b-form-select v-model="filtroOrden" :options="opcionesOrden" class="mb-2"></b-form-select>
+        </b-col>
+      </b-row>
+    </b-collapse>
+
+    <!-- Indicador de carga -->
+    <div v-if="$store.state.cargando" class="text-center">
+      <b-spinner variant="primary"></b-spinner>
+      <p>Cargando productos...</p>
+    </div>
+
+    <!-- Lista de productos -->
+    <div v-else>
+      <div class="row row-cols-1 row-cols-md-3 g-4">
+        <div class="col" v-for="producto in productosFiltrados" :key="producto.id">
+          <ProductoCard :producto="producto" />
+        </div>
+      </div>
+
+      <!-- Paginación -->
+      <b-pagination
+        v-if="productosFiltrados.length > 0"
+        v-model="paginaActual"
+        :total-rows="totalProductos"
+        :per-page="productosPorPagina"
+        class="mt-4"
+      ></b-pagination>
+
+      <!-- Mensaje si no hay productos -->
+      <div v-if="productosFiltrados.length === 0" class="alert alert-warning mt-4">
+        No hay productos disponibles en esta categoría
+      </div>
     </div>
   </div>
 </template>
@@ -28,164 +70,93 @@ export default {
   data() {
     return {
       categoriaActual: this.$route.query.categoria || '',
-      productos: [
-        // Electrónica
-        { 
-          id: 1, 
-          nombre: 'Smartphone X', 
-          precio: 599.99, 
-          categoria: 'electrónica',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Teléfono inteligente última generación'
-        },
-        { 
-          id: 2, 
-          nombre: 'Laptop Pro', 
-          precio: 1299.99, 
-          categoria: 'electrónica',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Laptop potente para trabajo y juegos'
-        },
-
-        // Hogar
-        { 
-          id: 3, 
-          nombre: 'Sofá Moderno', 
-          precio: 899.99, 
-          categoria: 'hogar',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Sofá de diseño escandinavo'
-        },
-        { 
-          id: 4, 
-          nombre: 'Lámpara de Mesa', 
-          precio: 49.99, 
-          categoria: 'hogar',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Lámpara moderna para tu sala'
-        },
-
-        // Moda
-        { 
-          id: 5, 
-          nombre: 'Zapatos Deportivos', 
-          precio: 79.99, 
-          categoria: 'moda',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Zapatos cómodos para correr'
-        },
-        { 
-          id: 6, 
-          nombre: 'Chaqueta de Cuero', 
-          precio: 199.99, 
-          categoria: 'moda',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Chaqueta elegante y resistente'
-        },
-
-        // Deportes
-        { 
-          id: 7, 
-          nombre: 'Balón de Fútbol', 
-          precio: 29.99, 
-          categoria: 'deportes',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Balón oficial para partidos'
-        },
-        { 
-          id: 8, 
-          nombre: 'Raqueta de Tenis', 
-          precio: 89.99, 
-          categoria: 'deportes',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Raqueta profesional para tenis'
-        },
-
-        // Juguetes
-        { 
-          id: 9, 
-          nombre: 'Lego Classic', 
-          precio: 39.99, 
-          categoria: 'juguetes',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Set de construcción creativa'
-        },
-        { 
-          id: 10, 
-          nombre: 'Muñeca Barbie', 
-          precio: 19.99, 
-          categoria: 'juguetes',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Muñeca clásica Barbie'
-        },
-
-        // Libros
-        { 
-          id: 11, 
-          nombre: 'Cien Años de Soledad', 
-          precio: 14.99, 
-          categoria: 'libros',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Novela clásica de Gabriel García Márquez'
-        },
-        { 
-          id: 12, 
-          nombre: 'El Principito', 
-          precio: 9.99, 
-          categoria: 'libros',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Libro infantil y filosófico'
-        },
-
-        // Belleza
-        { 
-          id: 13, 
-          nombre: 'Kit de Maquillaje', 
-          precio: 49.99, 
-          categoria: 'belleza',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Kit completo para maquillaje profesional'
-        },
-        { 
-          id: 14, 
-          nombre: 'Crema Hidratante', 
-          precio: 24.99, 
-          categoria: 'belleza',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Crema hidratante para piel seca'
-        },
-
-        // Automóviles
-        { 
-          id: 15, 
-          nombre: 'Neumáticos All-Season', 
-          precio: 199.99, 
-          categoria: 'automóviles',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Neumáticos para todo tipo de clima'
-        },
-        { 
-          id: 16, 
-          nombre: 'Aceite de Motor', 
-          precio: 29.99, 
-          categoria: 'automóviles',
-          imagen: 'https://via.placeholder.com/300',
-          descripcion: 'Aceite sintético para motor'
-        }
+      busqueda: '',
+      mostrarFiltros: false,
+      filtroPrecio: null,
+      filtroOrden: null,
+      paginaActual: 1,
+      productosPorPagina: 6, // Número de productos por página
+      opcionesPrecio: [
+        { value: null, text: 'Filtrar por precio' },
+        { value: '0-50', text: 'Menos de $50' },
+        { value: '50-100', text: '$50 - $100' },
+        { value: '100-', text: 'Más de $100' }
+      ],
+      opcionesOrden: [
+        { value: null, text: 'Ordenar por' },
+        { value: 'precio-asc', text: 'Precio: Menor a Mayor' },
+        { value: 'precio-desc', text: 'Precio: Mayor a Menor' },
+        { value: 'nombre-asc', text: 'Nombre: A-Z' },
+        { value: 'nombre-desc', text: 'Nombre: Z-A' }
       ]
     };
   },
   computed: {
+    breadcrumbs() {
+      return [
+        { text: 'Inicio', to: '/' },
+        { text: 'Categorías', to: '/categorias' },
+        { text: this.categoriaActual || 'Productos', active: true }
+      ];
+    },
     productosFiltrados() {
-      if (!this.categoriaActual) return this.productos;
-      return this.productos.filter(p => 
-        p.categoria.toLowerCase() === this.categoriaActual.toLowerCase()
-      );
+      let productos = this.$store.getters.productosFiltrados(this.categoriaActual);
+
+      // Filtrar por búsqueda
+      if (this.busqueda) {
+        productos = productos.filter(p =>
+          p.nombre.toLowerCase().includes(this.busqueda.toLowerCase()) ||
+          p.descripcion.toLowerCase().includes(this.busqueda.toLowerCase())
+        );
+      }
+
+      // Filtrar por precio
+      if (this.filtroPrecio) {
+        const [min, max] = this.filtroPrecio.split('-');
+        productos = productos.filter(p => {
+          const precio = p.precio;
+          return (!min || precio >= parseFloat(min)) && (!max || precio <= parseFloat(max));
+        });
+      }
+
+      // Ordenar
+      if (this.filtroOrden) {
+        const [campo, orden] = this.filtroOrden.split('-');
+        productos.sort((a, b) => {
+          if (campo === 'precio') {
+            return orden === 'asc' ? a.precio - b.precio : b.precio - a.precio;
+          } else if (campo === 'nombre') {
+            return orden === 'asc' 
+              ? a.nombre.localeCompare(b.nombre) 
+              : b.nombre.localeCompare(a.nombre);
+          }
+          return 0;
+        });
+      }
+
+      // Paginación
+      const inicio = (this.paginaActual - 1) * this.productosPorPagina;
+      const fin = inicio + this.productosPorPagina;
+      return productos.slice(inicio, fin);
+    },
+    totalProductos() {
+      return this.$store.getters.productosFiltrados(this.categoriaActual).length;
     }
+  },
+  created() {
+    this.$store.dispatch('cargarProductos'); // Cargar productos al iniciar la vista
   }
 };
 </script>
 
 <style scoped>
 /* Estilos específicos para la página de productos */
+.card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
 </style>
