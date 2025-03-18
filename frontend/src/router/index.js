@@ -5,7 +5,8 @@ import HomeView from '@/views/Home/HomeView.vue'; // Nueva vista
 import LoginView from '@/views/Auth/LoginView.vue';
 import ProductosView from '@/views/Productos/ProductosView.vue';
 import CheckoutView from '@/views/Checkout/CheckoutView.vue';
-import Register from '@/views/Auth/Register.vue'
+import Register from '@/views/Auth/Register.vue';
+import Contraseña from '@/views/Auth/Contraseña.vue'
 
 const routes = [
   { 
@@ -32,7 +33,12 @@ const routes = [
       path: '/registro', 
       name: 'Register',
       component: Register
-   }
+   },
+   {
+    path: '/Contraseña', 
+    name: 'Contraseña',
+    component: Contraseña
+ }
 ];
 
 const router = createRouter({

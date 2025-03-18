@@ -35,6 +35,10 @@
         {{ errorMessage }}
       </div>
       
+      <div v-if="successMessage" class="success-message">
+        {{ successMessage }}
+      </div>
+
       <button 
         type="submit" 
         class="submit-button"
@@ -48,14 +52,16 @@
 
     <p class="register-link">
       ¿Primera vez aquí? 
-      <router-link to="/register">Crear cuenta</router-link>
+      <router-link to="/registro">Crear cuenta</router-link>
+    </p>
+    <p class="password-link">
+      ¿Se te ha olvidado la contraseña?
+      <router-link to="/Contraseña">Olvidé mi Contraseña</router-link>
     </p>
   </div>
 </template>
 
 <script>
-
-// Datos falsos temporalmente en el componente
 const MOCK_USERS = [
   {
     email: "mauro123@.com",
@@ -72,12 +78,12 @@ export default {
       email: '',
       password: '',
       isLoading: false,
-      errorMessage: ''
+      errorMessage: '',
+      successMessage: ''
     };
   },
   methods: {
     validateForm() {
-      // Validación frontend
       if (!this.email || !this.password) {
         this.errorMessage = 'Todos los campos son obligatorios';
         return false;
@@ -98,6 +104,7 @@ export default {
     
     clearError() {
       this.errorMessage = '';
+      this.successMessage = '';
     },
     
     mockAuthService() {
@@ -109,47 +116,45 @@ export default {
           );
           
           user ? resolve(user) : reject('Credenciales incorrectas');
-        }, 1500); // Simula delay de red
+        }, 1500);
       });
     },
     
     handleSubmit() {
-      // Aquí deberías llamar a tu función para manejar el submit
-      // Por ejemplo:
       if (this.validateForm()) {
         this.isLoading = true;
         this.mockAuthService()
           .then(user => {
             console.log('Inicio de sesión exitoso:', user);
-            // Aquí puedes redirigir a la página principal o hacer algo más
-            this.isLoading = false;
+            this.successMessage = `Bienvenido, ${user.name}`;
+            this.successMessage = 'Sus datos han sido añadidos';
+            this.errorMessage = '';
+            
+            setTimeout(() => {
+              this.$router.push('/main');
+            }, 2000);
           })
           .catch(error => {
             this.errorMessage = error;
+            this.successMessage = '';
+          })
+          .finally(() => {
             this.isLoading = false;
           });
+          
       }
-    },
-    
-    goToRegister() {
-      this.$router.push({ path: '/register' })
     }
   }
 };
-
-
 </script>
 
 <style scoped>
-/* Variables - Coordinar con equipo */
 .login-container {
   --color-primary: #047ffa;
   --color-error: #e74c3c;
+  --color-success: #2ecc71;
   --border-radius: 8px;
   --transition-speed: 0.3s;
-}
-
-.login-container {
   max-width: 400px;
   margin: 2rem auto;
   padding: 2rem;
@@ -190,6 +195,14 @@ input:focus {
   text-align: center;
 }
 
+.success-message {
+  color: var(--color-success);
+  margin: 1rem 0;
+  font-size: 0.9rem;
+  text-align: center;
+  animation: fadeIn 0.5s ease-in;
+}
+
 .submit-button {
   width: 100%;
   padding: 12px;
@@ -208,15 +221,20 @@ input:focus {
   cursor: not-allowed;
 }
 
-.register-link {
+.register-link, .password-link {
   margin-top: 1.5rem;
   text-align: center;
   color: #7f8c8d;
 }
 
-.register-link a {
+.register-link a, .password-link a {
   color: var(--color-primary);
   font-weight: 600;
   text-decoration: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>
