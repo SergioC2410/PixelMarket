@@ -9,7 +9,8 @@ from django.db import models
 from django.core.exceptions import ValidationError
 # validate_email: Validador que verifica el formato de una dirección de correo electrónico.
 from django.core.validators import validate_email
-import re  # Módulo para trabajar con expresiones regulares
+# PhoneNumberField: campo para la validacion de los numeros telefonicos
+from phonenumber_field.modelfields import PhoneNumberField
 
 # Definición del modelo de usuario personalizado
 class Usuario(AbstractUser):
@@ -32,11 +33,13 @@ class Usuario(AbstractUser):
         default='comprador',  # Valor predeterminado: comprador
         verbose_name='Rol del usuario'
     )
-    telefono = models.CharField(
-        max_length=15,
-        blank=True,  # El campo es opcional
-        null=True,   # Puede ser NULL en la base de datos
-        verbose_name='Número de teléfono'
+    telefono = PhoneNumberField(
+        region='VE',  # Ajusta la región según tu país
+        blank=True,   # El campo es opcional
+        null=True,    # Puede ser NULL en la base de datos
+        unique=True,  # El numero debe ser único en la base de datos
+        verbose_name='Número de teléfono',
+        help_text='Ej. +58 212 1235678'  # Mensaje de ayuda para el usuario
     )
     direccion = models.TextField(
         blank=True,  # El campo es opcional
@@ -49,6 +52,17 @@ class Usuario(AbstractUser):
         null=False,   # No puede ser NULL en la base de datos
         verbose_name='Correo electrónico'
     )
+    
+    cedula = models.CharField(
+        max_length=20,  # Ajusta la longitud según el formato de cédula en tu país
+        unique=True,    # La cédula debe ser única en la base de datos
+        blank=False,    # El campo es obligatorio
+        null=False,     # No puede ser NULL en la base de datos
+        verbose_name='Cédula',
+        help_text='Ingrese su número de cédula (solo números).'  # Mensaje de ayuda
+    )
+    
+    
     fecha_registro = models.DateTimeField(
         auto_now_add=True,  # Se establece automáticamente al crear el usuario
         verbose_name='Fecha de registro'
@@ -111,20 +125,12 @@ class Usuario(AbstractUser):
         """
         super().clean()  # Llama al método clean() de la clase padre (AbstractUser)
 
-        # Validación del campo 'telefono'
-        if self.telefono:
-            # Verifica que el teléfono solo contenga dígitos usando una expresión regular
-            if not re.match(r'^\d+$', self.telefono):
-                raise ValidationError({'telefono': 'El teléfono solo puede contener números.'})
-            # Verifica que el teléfono tenga entre 8 y 15 dígitos
-            if len(self.telefono) < 8 or len(self.telefono) > 15:
-                raise ValidationError({'telefono': 'El teléfono debe tener entre 8 y 15 dígitos.'})
-
         # Validación del campo 'email'
         try:
             validate_email(self.email)  # Valida que el email tenga un formato válido
         except ValidationError:
             raise ValidationError({'email': 'Ingresa un correo electrónico válido.'})
+
 
 
     # Mejoras sugeridas:
