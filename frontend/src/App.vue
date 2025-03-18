@@ -48,7 +48,7 @@
     <!-- Footer -->
     <footer class="footer bg-white border-top py-4">
       <div class="container text-center">
-        <p class="text-muted mb-0">&copy; 2024 PixelMarket - Todos los derechos reservados</p>
+        <p class="text-muted mb-0">&copy; 2025 PixelMarket - Todos los derechos reservados</p>
       </div>
     </footer>
   </div>

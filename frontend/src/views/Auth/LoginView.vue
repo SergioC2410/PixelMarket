@@ -3,7 +3,6 @@
     <h2>Iniciar sesión</h2>
     
     <form @submit.prevent="handleSubmit" class="login-form">
-      <!-- Input Email -->
       <div class="input-group">
         <label for="email">Correo electrónico:</label>
         <input
@@ -16,7 +15,6 @@
         >
       </div>
 
-      <!-- Input Contraseña -->
       <div class="input-group">
         <label for="password">Contraseña:</label>
         <input
@@ -30,13 +28,8 @@
         >
       </div>
 
-      <!-- Mensajes de estado -->
       <div v-if="errorMessage" class="error-message">
         {{ errorMessage }}
-      </div>
-      
-      <div v-if="successMessage" class="success-message">
-        {{ successMessage }}
       </div>
 
       <button 
@@ -54,11 +47,11 @@
       ¿Primera vez aquí? 
       <router-link to="/registro">Crear cuenta</router-link>
     </p>
+  </div>
     <p class="password-link">
       ¿Se te ha olvidado la contraseña?
       <router-link to="/Contraseña">Olvidé mi Contraseña</router-link>
     </p>
-  </div>
 </template>
 
 <script>
@@ -78,8 +71,7 @@ export default {
       email: '',
       password: '',
       isLoading: false,
-      errorMessage: '',
-      successMessage: ''
+      errorMessage: ''
     };
   },
   methods: {
@@ -104,7 +96,6 @@ export default {
     
     clearError() {
       this.errorMessage = '';
-      this.successMessage = '';
     },
     
     mockAuthService() {
@@ -123,25 +114,39 @@ export default {
     handleSubmit() {
       if (this.validateForm()) {
         this.isLoading = true;
+        
         this.mockAuthService()
           .then(user => {
             console.log('Inicio de sesión exitoso:', user);
-            this.successMessage = `Bienvenido, ${user.name}`;
-            this.successMessage = 'Sus datos han sido añadidos';
-            this.errorMessage = '';
             
-            setTimeout(() => {
+            // Mostrar notificación con SweetAlert
+            this.$swal({
+              title: 'Inicio de sesión exitoso',
+              text: `Bienvenido, ${user.name}!`,
+              icon: 'success',
+              confirmButtonColor: '#047ffa',
+            }).then(() => {
+              // Redirigir al main después de cerrar la alerta
               this.$router.push('/main');
-            }, 2000);
+            });
+            
+            this.errorMessage = '';
           })
           .catch(error => {
+            console.error('Error al iniciar sesión:', error);
             this.errorMessage = error;
-            this.successMessage = '';
+
+            // Mostrar error con SweetAlert
+            this.$swal({
+              title: 'Error al iniciar sesión',
+              text: error,
+              icon: 'error',
+              confirmButtonColor: '#e74c3c',
+            });
           })
           .finally(() => {
             this.isLoading = false;
           });
-          
       }
     }
   }
@@ -231,6 +236,27 @@ input:focus {
   color: var(--color-primary);
   font-weight: 600;
   text-decoration: none;
+}
+.input-group { 
+  margin-bottom: 1.5rem; 
+  label { font-weight: bold; color: var(--color-primary); }
+
+}
+input { 
+  width: 100%; 
+  padding: 12px; 
+  border-radius: var(--border-radius);
+ }
+ .submit-button { 
+  background-color: var(--color-primary); 
+  color: white; 
+  padding: 12px; 
+  border-radius: var(--border-radius);
+ }
+ .error-message { 
+  color: var(--color-error); 
+  text-align: center; 
+  margin-top: 1rem; 
 }
 
 @keyframes fadeIn {

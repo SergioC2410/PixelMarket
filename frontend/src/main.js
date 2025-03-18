@@ -4,6 +4,11 @@ import router from './router';    // Importa el router (que creamos en src/route
 import 'bootstrap/dist/css/bootstrap.css';  // Importa Bootstrap CSS
 import 'bootstrap/dist/js/bootstrap.js';    // Importa Bootstrap JS
 
+
+
+
+// Importa los estilos de SweetAlert2
+import 'sweetalert2/dist/sweetalert2.min.css';
 // Crea la aplicación Vue
 const app = createApp(App);
 
