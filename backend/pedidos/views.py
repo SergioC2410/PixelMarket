@@ -1,9 +1,11 @@
-# Este archivo contiene la lógica para manejar las solicitudes HTTP (APIs).
+"""
+Este módulo contiene las vistas para manejar pedidos en la aplicación.
+"""
+import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import Pedido, ItemPedido
 from productos.models import Producto
-import json
+from .models import Pedido, ItemPedido
 
 @csrf_exempt
 def crear_pedido(request):
@@ -34,6 +36,10 @@ def crear_pedido(request):
                 )
 
             return JsonResponse({'mensaje': 'Pedido creado exitosamente', 'pedido_id': pedido.id}, status=201)
+        except json.JSONDecodeError as e:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        except Producto.DoesNotExist as e:
+            return JsonResponse({'error': 'Product not found'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Método no permitido'}, status=405)
@@ -59,8 +65,3 @@ def listar_pedidos(request):
         } for pedido in pedidos]
         return JsonResponse(pedidos_data, safe=False)
     return JsonResponse({'error': 'Método no permitido'}, status=405)
-
-# Mejoras sugeridas:
-# 1. Agregar paginación para la lista de pedidos.
-# 2. Implementar filtros (ej: por estado, fecha).
-# 3. Agregar pruebas unitarias para cada vista.
