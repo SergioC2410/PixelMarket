@@ -5,7 +5,7 @@ import HomeView from '@/views/Home/HomeView.vue'; // Nueva vista
 import LoginView from '@/views/Auth/LoginView.vue';
 import ProductosView from '@/views/Productos/ProductosView.vue';
 import CheckoutView from '@/views/Checkout/CheckoutView.vue';
-import Register from '@/views/Auth/Register.vue';
+import Register from '@/views/Auth/Register.vue'
 
 const routes = [
   { 
@@ -27,7 +27,12 @@ const routes = [
     path: '/checkout',
     name: 'Checkout',
     component: CheckoutView 
-  }
+  },
+  {
+      path: '/registro', 
+      name: 'Register',
+      component: Register
+   }
 ];
 
 const router = createRouter({
