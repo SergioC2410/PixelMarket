@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
 // Importar vistas
+import HomeView from '@/views/Home/HomeView.vue'; // Nueva vista
 import LoginView from '@/views/Auth/LoginView.vue';
 import ProductosView from '@/views/Productos/ProductosView.vue';
 import CheckoutView from '@/views/Checkout/CheckoutView.vue';
@@ -8,7 +9,8 @@ import CheckoutView from '@/views/Checkout/CheckoutView.vue';
 const routes = [
   { 
     path: '/', 
-    redirect: '/productos' // Redirige a productos por defecto
+    name: 'Home',
+    component: HomeView // Ruta raíz muestra HomeView
   },
   { 
     path: '/login',
