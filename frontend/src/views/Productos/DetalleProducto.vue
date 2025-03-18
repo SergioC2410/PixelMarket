@@ -5,8 +5,12 @@
       <div class="col-md-6">
         <div id="carouselProducto" class="carousel slide" data-bs-ride="carousel">
           <div class="carousel-inner">
-            <div v-for="(imagen, index) in producto.imagenes" :key="index" :class="['carousel-item', { active: index === 0 }]">
-                <img :src="imagen" class="d-block w-100" alt="Producto {{ producto.nombre }}">
+            <div 
+              v-for="(imagen, index) in producto.imagenes" 
+              :key="index" 
+              :class="['carousel-item', { active: index === 0 }]"
+            >
+              <img :src="imagen" class="d-block w-100" alt="Imagen del producto">
             </div>
           </div>
           <button class="carousel-control-prev" type="button" data-bs-target="#carouselProducto" data-bs-slide="prev">
@@ -36,7 +40,21 @@
             <i class="fas fa-check text-success me-2"></i>{{ caracteristica }}
           </li>
         </ul>
-        <button @click="agregarAlCarrito" class="btn btn-primary btn-lg">Agregar al carrito</button>
+        <button 
+          @click="agregarAlCarrito" 
+          class="btn btn-primary btn-lg"
+          :disabled="agregandoAlCarrito"
+        >
+          <span v-if="agregandoAlCarrito">
+            <i class="fas fa-spinner fa-spin"></i> Agregando...
+          </span>
+          <span v-else>
+            <i class="fas fa-cart-plus"></i> Agregar al carrito
+          </span>
+        </button>
+        <div v-if="mensajeCarrito" class="alert alert-success mt-3">
+          {{ mensajeCarrito }}
+        </div>
       </div>
     </div>
   </div>
@@ -47,7 +65,9 @@ export default {
   name: 'DetalleProducto',
   data() {
     return {
-      producto: null
+      producto: null,
+      agregandoAlCarrito: false,
+      mensajeCarrito: ''
     };
   },
   created() {
@@ -74,7 +94,20 @@ export default {
       };
     },
     agregarAlCarrito() {
-      // Lógica para agregar al carrito (usar Vuex)
+      this.agregandoAlCarrito = true; // Mostrar estado de carga
+      this.mensajeCarrito = ''; // Reiniciar mensaje
+
+      // Simulación de una llamada asíncrona (reemplazar con Vuex o Axios)
+      setTimeout(() => {
+        // Lógica para agregar al carrito
+        this.mensajeCarrito = '¡Producto agregado al carrito!';
+        this.agregandoAlCarrito = false; // Ocultar estado de carga
+
+        // Opcional: Limpiar el mensaje después de unos segundos
+        setTimeout(() => {
+          this.mensajeCarrito = '';
+        }, 3000);
+      }, 1000);
     }
   }
 };
@@ -84,5 +117,16 @@ export default {
 .carousel-item img {
   max-height: 400px;
   object-fit: contain;
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
 }
 </style>

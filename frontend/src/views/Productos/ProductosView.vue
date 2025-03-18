@@ -29,7 +29,7 @@ export default {
     return {
       categoriaActual: this.$route.query.categoria || '',
       productos: [
-        // Ejemplo de productos falsos
+        // Electrónica
         { 
           id: 1, 
           nombre: 'Smartphone X', 
@@ -40,13 +40,138 @@ export default {
         },
         { 
           id: 2, 
+          nombre: 'Laptop Pro', 
+          precio: 1299.99, 
+          categoria: 'electrónica',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Laptop potente para trabajo y juegos'
+        },
+
+        // Hogar
+        { 
+          id: 3, 
           nombre: 'Sofá Moderno', 
           precio: 899.99, 
           categoria: 'hogar',
           imagen: 'https://via.placeholder.com/300',
           descripcion: 'Sofá de diseño escandinavo'
         },
-        // Agregar más productos...
+        { 
+          id: 4, 
+          nombre: 'Lámpara de Mesa', 
+          precio: 49.99, 
+          categoria: 'hogar',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Lámpara moderna para tu sala'
+        },
+
+        // Moda
+        { 
+          id: 5, 
+          nombre: 'Zapatos Deportivos', 
+          precio: 79.99, 
+          categoria: 'moda',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Zapatos cómodos para correr'
+        },
+        { 
+          id: 6, 
+          nombre: 'Chaqueta de Cuero', 
+          precio: 199.99, 
+          categoria: 'moda',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Chaqueta elegante y resistente'
+        },
+
+        // Deportes
+        { 
+          id: 7, 
+          nombre: 'Balón de Fútbol', 
+          precio: 29.99, 
+          categoria: 'deportes',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Balón oficial para partidos'
+        },
+        { 
+          id: 8, 
+          nombre: 'Raqueta de Tenis', 
+          precio: 89.99, 
+          categoria: 'deportes',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Raqueta profesional para tenis'
+        },
+
+        // Juguetes
+        { 
+          id: 9, 
+          nombre: 'Lego Classic', 
+          precio: 39.99, 
+          categoria: 'juguetes',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Set de construcción creativa'
+        },
+        { 
+          id: 10, 
+          nombre: 'Muñeca Barbie', 
+          precio: 19.99, 
+          categoria: 'juguetes',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Muñeca clásica Barbie'
+        },
+
+        // Libros
+        { 
+          id: 11, 
+          nombre: 'Cien Años de Soledad', 
+          precio: 14.99, 
+          categoria: 'libros',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Novela clásica de Gabriel García Márquez'
+        },
+        { 
+          id: 12, 
+          nombre: 'El Principito', 
+          precio: 9.99, 
+          categoria: 'libros',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Libro infantil y filosófico'
+        },
+
+        // Belleza
+        { 
+          id: 13, 
+          nombre: 'Kit de Maquillaje', 
+          precio: 49.99, 
+          categoria: 'belleza',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Kit completo para maquillaje profesional'
+        },
+        { 
+          id: 14, 
+          nombre: 'Crema Hidratante', 
+          precio: 24.99, 
+          categoria: 'belleza',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Crema hidratante para piel seca'
+        },
+
+        // Automóviles
+        { 
+          id: 15, 
+          nombre: 'Neumáticos All-Season', 
+          precio: 199.99, 
+          categoria: 'automóviles',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Neumáticos para todo tipo de clima'
+        },
+        { 
+          id: 16, 
+          nombre: 'Aceite de Motor', 
+          precio: 29.99, 
+          categoria: 'automóviles',
+          imagen: 'https://via.placeholder.com/300',
+          descripcion: 'Aceite sintético para motor'
+        }
       ]
     };
   },
@@ -60,6 +185,7 @@ export default {
   }
 };
 </script>
+
 <style scoped>
 /* Estilos específicos para la página de productos */
 </style>

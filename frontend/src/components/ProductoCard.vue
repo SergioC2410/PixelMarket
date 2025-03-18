@@ -28,7 +28,7 @@ export default {
   },
   methods: {
     verDetalle() {
-      this.$router.push({ name: 'DetallesProductos', params: { id: this.producto.id } });
+      this.$router.push({ name: 'DetalleProducto', params: { id: this.producto.id } });
     },
     agregarAlCarrito() {
       // Lógica para agregar al carrito
