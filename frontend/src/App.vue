@@ -23,7 +23,7 @@
           <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto align-items-center">
               <li class="nav-item mx-2">
-                <router-link to="/productos" class="nav-link">Categorías</router-link>
+                <router-link to="/categorias" class="nav-link">Categorías</router-link>
               </li>
               <li class="nav-item mx-2 position-relative">
                 <router-link to="/checkout" class="nav-link">
