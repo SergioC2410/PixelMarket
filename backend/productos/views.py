@@ -5,11 +5,13 @@ from django.core.files.storage import default_storage
 from django.core.paginator import Paginator
 from django.db.models import Q
 import json
-from .models import Producto, Categoria
-from .serializers import ProductoSerializer, CategoriaSerializer, ProductoUpdateSerializer
+from .models import Producto, Categoria  # Eliminamos Pedido
+from .serializers import ProductoSerializer, CategoriaSerializer, ProductoUpdateSerializer  # Eliminamos PedidoSerializer
 
-# Definir constantes
+# Definir constantes para manejo de errores
 ERROR_METODO_NO_PERMITIDO = 'Método no permitido'
+ERROR_PRODUCTO_NO_ENCONTRADO = 'Producto no encontrado'
+ERROR_CATEGORIA_NO_ENCONTRADA = 'Categoría no encontrada'
 
 # Vista para listar todos los productos
 @csrf_exempt
@@ -121,11 +123,8 @@ def actualizar_producto(request, producto_id):
                 return JsonResponse(serializer.data, status=200)
 
             return JsonResponse(serializer.errors, status=400)
-
         except Producto.DoesNotExist:
-            return JsonResponse({'error': 'Producto no encontrado'}, status=404)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            return JsonResponse({'error': ERROR_PRODUCTO_NO_ENCONTRADO}, status=404)
 
     return JsonResponse({'error': ERROR_METODO_NO_PERMITIDO}, status=405)
 
@@ -145,36 +144,33 @@ def eliminar_producto(request, producto_id):
             return JsonResponse({'mensaje': 'Producto eliminado exitosamente'}, status=200)
 
         except Producto.DoesNotExist:
-            return JsonResponse({'error': 'Producto no encontrado'}, status=404)
+            return JsonResponse({'error': ERROR_PRODUCTO_NO_ENCONTRADO}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
 
     return JsonResponse({'error': ERROR_METODO_NO_PERMITIDO}, status=405)
 
-# Vista para listar productos por categoría
+# Vista para obtener los detalles de un producto
 @csrf_exempt
-def listar_productos_por_categoria(request, categoria_id):
+def detalle_producto(request, producto_id):
     """
-    Vista para listar todos los productos de una categoría específica.
+    Vista para obtener los detalles de un producto específico.
     """
     if request.method == 'GET':
         try:
-            # Obtener la categoría
-            categoria = Categoria.objects.get(id=categoria_id)
+            # Obtener el producto por su ID
+            producto = Producto.objects.get(id=producto_id)
 
-            # Obtener todos los productos de la categoría
-            productos = categoria.productos.all()
+            # Serializar el producto
+            serializer = ProductoSerializer(producto)
+            return JsonResponse(serializer.data)
 
-            # Serializar los productos
-            serializer = ProductoSerializer(productos, many=True)
-            return JsonResponse(serializer.data, safe=False)
-
-        except Categoria.DoesNotExist:
-            return JsonResponse({'error': 'Categoría no encontrada'}, status=404)
+        except Producto.DoesNotExist:
+            return JsonResponse({'error': 'Producto no encontrado'}, status=404)
 
     return JsonResponse({'error': ERROR_METODO_NO_PERMITIDO}, status=405)
 
-# Vistas para categorías
+# Vista para listar todas las categorías
 @csrf_exempt
 def listar_categorias(request):
     """
@@ -187,6 +183,7 @@ def listar_categorias(request):
 
     return JsonResponse({'error': ERROR_METODO_NO_PERMITIDO}, status=405)
 
+# Vista para crear una nueva categoría
 @csrf_exempt
 def crear_categoria(request):
     """
@@ -211,6 +208,7 @@ def crear_categoria(request):
 
     return JsonResponse({'error': ERROR_METODO_NO_PERMITIDO}, status=405)
 
+# Vista para obtener los detalles de una categoría específica
 @csrf_exempt
 def detalle_categoria(request, categoria_id):
     """
@@ -223,6 +221,7 @@ def detalle_categoria(request, categoria_id):
 
     return JsonResponse({'error': ERROR_METODO_NO_PERMITIDO}, status=405)
 
+# Vista para actualizar una categoría existente
 @csrf_exempt
 def actualizar_categoria(request, categoria_id):
     """
@@ -249,19 +248,17 @@ def actualizar_categoria(request, categoria_id):
 
     return JsonResponse({'error': ERROR_METODO_NO_PERMITIDO}, status=405)
 
+# Vista para eliminar una categoría existente
 @csrf_exempt
 def eliminar_categoria(request, categoria_id):
     """
-    Vista para eliminar una categoría.
+    Vista para eliminar una categoría existente.
     """
     if request.method == 'DELETE':
         try:
-            # Obtener la categoría a eliminar
             categoria = get_object_or_404(Categoria, id=categoria_id)
-
-            # Eliminar la categoría
             categoria.delete()
-            return JsonResponse({'mensaje': 'Categoría eliminada correctamente'}, status=204)
+            return JsonResponse({'mensaje': 'Categoría eliminada correctamente'}, status=200)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
 

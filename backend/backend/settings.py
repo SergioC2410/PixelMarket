@@ -27,6 +27,14 @@ DEBUG = True
 # Especifica qué hosts pueden acceder al proyecto
 ALLOWED_HOSTS = []
 
+# --- Django REST Framework (DRF) ---
+
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',  # Solo permite respuestas en formato JSON
+    ],
+}
+
 
 # --- Aplicaciones Instaladas ---
 

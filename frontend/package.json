@@ -2,11 +2,11 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
-"scripts": {
-  "start": "vue-cli-service serve",
-  "build": "vue-cli-service build",
-  "test": "vue-cli-service test"
-},
+  "scripts": {
+    "start": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "test": "vue-cli-service test"
+  },
   "dependencies": {
     "axios": "^1.8.3",
     "bootstrap": "^5.3.3",
@@ -35,7 +35,7 @@
     ],
     "parserOptions": {
       "parser": "@babel/eslint-parser",
-      "requireConfigFile": false  
+      "requireConfigFile": false
     },
     "rules": {}
   },

@@ -52,8 +52,8 @@ class Producto(models.Model):
     # Campo para el nombre del producto
     nombre = models.CharField(max_length=255, unique=True)
 
-    # Campo para la descripción del producto (opcional)
-    descripcion = models.TextField()
+    # Campo para la descripción del producto (opcional, con valor por defecto)
+    descripcion = models.TextField(default='Sin descripción')  # Valor por defecto añadido
 
     # Campo para el precio del producto (con validación para que no sea negativo)
     precio = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
@@ -72,7 +72,6 @@ class Producto(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True)
 
     # Campo para la imagen del producto
-    # Este campo permite subir una imagen del producto, y se guarda en la carpeta 'productos/' dentro del directorio de medios.
     imagen = models.ImageField(upload_to='productos/', null=True, blank=True)
 
     def clean(self):

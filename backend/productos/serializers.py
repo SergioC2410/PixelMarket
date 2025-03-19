@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 # Importamos los modelos que vamos a serializar
-from .models import Producto, Categoria
+from .models import Producto, Categoria  # Solo los modelos de Producto y Categoria
 
 # Definimos el serializador para el modelo Categoria
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -75,6 +75,7 @@ class ProductoSerializer(serializers.ModelSerializer):
             # Si el producto tiene una imagen, devolvemos la URL completa de la imagen
             return obj.imagen.url
         return None  # Si no tiene imagen, devolvemos None
+
 
 # Definimos un serializador para actualización parcial de productos (PATCH)
 class ProductoUpdateSerializer(serializers.ModelSerializer):

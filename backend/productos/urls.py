@@ -2,12 +2,12 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 from . import views
 
-# Usamos DefaultRouter de DRF para manejar las rutas de las vistas basadas en clases
+# Usamos DefaultRouter de DRF para manejar las rutas de vistas basadas en clases si las tienes
 router = DefaultRouter()
 
-# Aquí podrías agregar otras rutas de vistas basadas en clases (si las tienes),
-# por ejemplo, si tienes un ViewSet para los productos:
+# Aquí puedes agregar vistas basadas en clases si las tienes, como un ViewSet para productos
 # router.register(r'productos', views.ProductoViewSet, basename='producto')
+# router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
 
 urlpatterns = [
     # Rutas para manejar productos
@@ -26,24 +26,24 @@ urlpatterns = [
     # Ruta para eliminar un producto
     path('productos/<int:producto_id>/eliminar/', views.eliminar_producto, name='eliminar_producto'),
 
-    # Rutas para manejar pedidos (puedes agregar esto si tienes una funcionalidad de pedidos)
-    # Ruta para crear un nuevo pedido
-    path('pedidos/crear/', views.crear_pedido, name='crear_pedido'),
+    # Rutas para manejar categorías
+    # Ruta para crear una nueva categoría
+    path('categorias/crear/', views.crear_categoria, name='crear_categoria'),
 
-    # Ruta para listar todos los pedidos
-    path('pedidos/', views.listar_pedidos, name='listar_pedidos'),
+    # Ruta para listar todas las categorías
+    path('categorias/', views.listar_categorias, name='listar_categorias'),
 
-    # Ruta para obtener detalles de un pedido específico
-    path('pedidos/<int:pedido_id>/', views.detalle_pedido, name='detalle_pedido'),
+    # Ruta para obtener los detalles de una categoría específica
+    path('categorias/<int:categoria_id>/', views.detalle_categoria, name='detalle_categoria'),
 
-    # Ruta para actualizar un pedido (por ejemplo, cambiar el estado)
-    path('pedidos/<int:pedido_id>/actualizar/', views.actualizar_pedido, name='actualizar_pedido'),
+    # Ruta para actualizar una categoría
+    path('categorias/<int:categoria_id>/actualizar/', views.actualizar_categoria, name='actualizar_categoria'),
 
-    # Ruta para cancelar un pedido
-    path('pedidos/<int:pedido_id>/cancelar/', views.cancelar_pedido, name='cancelar_pedido'),
+    # Ruta para eliminar una categoría
+    path('categorias/<int:categoria_id>/eliminar/', views.eliminar_categoria, name='eliminar_categoria'),
 ]
 
-# Agregamos las rutas generadas por el router para las vistas basadas en clases
+# Agregamos las rutas generadas por el router para las vistas basadas en clases (si las tienes)
 urlpatterns += router.urls
 
 # Configuración para servir archivos estáticos y de medios en desarrollo

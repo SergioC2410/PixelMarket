@@ -10,7 +10,7 @@
               :key="index" 
               :class="['carousel-item', { active: index === 0 }]"
             >
-              <img :src="imagen" class="d-block w-100" alt="Producto">
+              <img :src="imagen.url" class="d-block w-100" :alt="producto.nombre">
             </div>
           </div>
           <button class="carousel-control-prev" type="button" data-bs-target="#carouselProducto" data-bs-slide="prev">
@@ -61,6 +61,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   name: 'DetalleProducto',
   data() {
@@ -74,24 +76,15 @@ export default {
     this.cargarProducto();
   },
   methods: {
-    cargarProducto() {
+    async cargarProducto() {
       const productoId = this.$route.params.id;
-      // Simulación de carga de producto (reemplazar con Axios)
-      this.producto = {
-        id: productoId,
-        nombre: 'Producto ' + productoId,
-        descripcion: 'Descripción del producto ' + productoId,
-        precio: 100,
-        imagen: 'https://via.placeholder.com/300',
-        imagenes: [
-          'https://via.placeholder.com/300',
-          'https://via.placeholder.com/300',
-          'https://via.placeholder.com/300'
-        ],
-        descuento: 10,
-        clasificacion: 4.5,
-        caracteristicas: ['Característica 1', 'Característica 2', 'Característica 3']
-      };
+      try {
+        // Reemplaza con tu API real para cargar el producto desde la base de datos
+        const respuesta = await axios.get(`https://api.tusitio.com/productos/${productoId}`);
+        this.producto = respuesta.data;
+      } catch (error) {
+        console.error('Error al cargar el producto:', error);
+      }
     },
     agregarAlCarrito() {
       this.agregandoAlCarrito = true; // Mostrar estado de carga

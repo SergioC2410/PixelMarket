@@ -23,7 +23,6 @@
 export default {
   name: 'CategoriasView',
   computed: {
-    // Usamos Vuex para obtener las categorías
     categorias() {
       return this.$store.getters.categorias;
     },
@@ -37,7 +36,6 @@ export default {
     },
   },
   mounted() {
-    // Cargar las categorías cuando se monta el componente
     this.$store.dispatch('cargarCategorias');
   },
 };
