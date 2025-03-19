@@ -9,7 +9,6 @@ class UsuarioModelTest(TestCase):
             'username': 'testuser',
             'password': 'testpassword123',
             'email': 'testuser@example.com',
-            'rol': 'comprador',
             'telefono': '12345678',
             'direccion': '123 Test St',
         }
@@ -20,7 +19,6 @@ class UsuarioModelTest(TestCase):
             username=self.usuario_data['username'],
             email=self.usuario_data['email'],
             password=self.usuario_data['password'],
-            rol=self.usuario_data['rol'],
             telefono=self.usuario_data['telefono'],
             direccion=self.usuario_data['direccion']
         )
@@ -30,7 +28,6 @@ class UsuarioModelTest(TestCase):
         self.assertEqual(Usuario.objects.count(), 1)
         self.assertEqual(usuario.username, self.usuario_data['username'])
         self.assertEqual(usuario.email, self.usuario_data['email'])
-        self.assertEqual(usuario.rol, self.usuario_data['rol'])
         self.assertEqual(usuario.telefono, self.usuario_data['telefono'])
         self.assertEqual(usuario.direccion, self.usuario_data['direccion'])
 
