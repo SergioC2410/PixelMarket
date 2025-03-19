@@ -10,7 +10,7 @@
               :key="index" 
               :class="['carousel-item', { active: index === 0 }]"
             >
-              <img :src="imagen" class="d-block w-100" alt="Imagen del producto">
+              <img :src="imagen" class="d-block w-100" alt="Producto">
             </div>
           </div>
           <button class="carousel-control-prev" type="button" data-bs-target="#carouselProducto" data-bs-slide="prev">

@@ -3,11 +3,15 @@ import { createStore } from 'vuex';
 export default createStore({
   state: {
     productos: [], // Estado global para los productos
+    categorias: [], // Estado global para las categorías
     cargando: false, // Estado para indicar si se están cargando los productos
   },
   mutations: {
     SET_PRODUCTOS(state, productos) {
       state.productos = productos;
+    },
+    SET_CATEGORIAS(state, categorias) {
+      state.categorias = categorias;
     },
     SET_CARGANDO(state, cargando) {
       state.cargando = cargando;
@@ -42,6 +46,24 @@ export default createStore({
         commit('SET_CARGANDO', false); // Indicar que la carga ha terminado
       }, 1000); // Simular un retardo de 1 segundo
     },
+    
+    async cargarCategorias({ commit }) {
+      // Simulación de una llamada a una API para cargar categorías
+      setTimeout(() => {
+        const categorias = [
+          { id: 1, nombre: 'Electrónica', productos: 45 },
+          { id: 2, nombre: 'Hogar', productos: 32 },
+          { id: 3, nombre: 'Moda', productos: 78 },
+          { id: 4, nombre: 'Deportes', productos: 56 },
+          { id: 5, nombre: 'Juguetes', productos: 23 },
+          { id: 6, nombre: 'Libros', productos: 89 },
+          { id: 7, nombre: 'Belleza', productos: 67 },
+          { id: 8, nombre: 'Automóviles', productos: 12 },
+        ];
+
+        commit('SET_CATEGORIAS', categorias); // Actualizar el estado con las categorías
+      }, 1000); // Simular un retardo de 1 segundo
+    },
   },
   getters: {
     productosFiltrados: (state) => (categoria) => {
@@ -49,6 +71,9 @@ export default createStore({
       return state.productos.filter(p => 
         p.categoria.toLowerCase() === categoria.toLowerCase()
       );
+    },
+    categorias(state) {
+      return state.categorias;
     },
   },
 });
