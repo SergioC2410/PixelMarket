@@ -3,6 +3,7 @@
     "python.linting.pylintEnabled": true,
     "python.linting.pylintUseMinimalCheckers": false,
     "python.linting.pylintArgs": [
-        "--disable=W0612,W0718"
+        "--disable=W0612,W0718",
+        "--disable=import-error"
     ]
 }

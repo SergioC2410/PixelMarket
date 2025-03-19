@@ -1,6 +1,7 @@
 # Este archivo define los modelos de la base de datos para pedidos y ítems de pedido.
 
 from django.db import models
+from django.core.exceptions import ValidationError
 from productos.models import Producto  # Importa el modelo Producto
 from usuarios.models import Usuario    # Importa el modelo Usuario
 
@@ -25,9 +26,27 @@ class Pedido(models.Model):
         """
         return f"Pedido #{self.id} - {self.usuario.username}"
 
-    # Mejoras sugeridas:
-    # 1. Agregar un método para calcular el total automáticamente.
-    # 2. Implementar validaciones (ej: no permitir pedidos vacíos).
+    def calcular_total(self):
+        """
+        Calcula el total del pedido sumando el subtotal de todos los ítems.
+        """
+        self.total = sum(item.subtotal() for item in self.items.all())
+        self.save()
+
+    def clean(self):
+        """
+        Valida que el pedido tenga al menos un ítem antes de guardarlo.
+        """
+        if self.items.count() == 0:
+            raise ValidationError("Un pedido no puede estar vacío.")
+
+    class Meta:
+        """
+        Metadata del modelo Pedido.
+        """
+        ordering = ['-fecha_creacion']  # Ordenar pedidos por fecha de creación descendente
+        verbose_name = 'Pedido'
+        verbose_name_plural = 'Pedidos'
 
 class ItemPedido(models.Model):
     """
@@ -45,6 +64,31 @@ class ItemPedido(models.Model):
         """
         return f"{self.cantidad}x {self.producto.nombre}"
 
-    # Mejoras sugeridas:
-    # 1. Agregar un método para calcular el subtotal (cantidad * precio_unitario).
-    # 2. Implementar validaciones (ej: no permitir cantidades negativas).
+    def subtotal(self):
+        """
+        Calcula el subtotal del ítem (cantidad * precio_unitario).
+        """
+        return self.cantidad * self.precio_unitario
+
+    def clean(self):
+        """
+        Valida que la cantidad no sea negativa y que no exceda el stock disponible.
+        """
+        if self.cantidad <= 0:
+            raise ValidationError("La cantidad debe ser mayor que cero.")
+        if self.cantidad > self.producto.stock:
+            raise ValidationError(f"No hay suficiente stock para {self.producto.nombre}. Stock disponible: {self.producto.stock}")
+
+    def save(self, *args, **kwargs):
+        """
+        Sobrescribe el método save para actualizar el total del pedido después de guardar el ítem.
+        """
+        super().save(*args, **kwargs)
+        self.pedido.calcular_total()
+
+    class Meta:
+        """
+        Metadata del modelo ItemPedido.
+        """
+        verbose_name = 'Ítem de Pedido'
+        verbose_name_plural = 'Ítems de Pedido'
