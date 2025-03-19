@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'productos',
 ]
 
 MIDDLEWARE = [
@@ -78,7 +79,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'Pixel_Market',
         'USER': 'Pixel_Market',
-        'PASSWORD': 'Pixelmarket1',
+        'PASSWORD': 'pixelmarket1',
         'HOST': 'localhost',
         'PORT': '3306',
     }
