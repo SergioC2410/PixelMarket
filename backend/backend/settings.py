@@ -12,82 +12,88 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Base Directory del proyecto
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
+# --- Seguridad ---
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# Clave secreta para la seguridad de tu proyecto (¡no debe compartirse!)
 SECRET_KEY = 'django-insecure-uvg!+1^)=x%g)083+95zck-_hxhd%6^4&m&qukzqp2$-rjmp6v'
 
-# SECURITY WARNING: don't run with debug turned on in production!
+# Configuración de Debugging. En producción debe ser False
 DEBUG = True
 
+# Especifica qué hosts pueden acceder al proyecto
 ALLOWED_HOSTS = []
 
 
-# Application definition
+# --- Aplicaciones Instaladas ---
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'productos',
+    'django.contrib.admin',  # Interfaz de administración de Django
+    'django.contrib.auth',  # Autenticación de usuarios
+    'django.contrib.contenttypes',  # Gestor de tipos de contenido
+    'django.contrib.sessions',  # Gestión de sesiones
+    'django.contrib.messages',  # Sistema de mensajes
+    'django.contrib.staticfiles',  # Archivos estáticos (CSS, JS, imágenes estáticas)
+    'productos',  # Tu app personalizada para manejar productos
 ]
+
+# --- Middleware ---
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.security.SecurityMiddleware',  # Seguridad en el sitio
+    'django.contrib.sessions.middleware.SessionMiddleware',  # Middleware de sesiones
+    'django.middleware.common.CommonMiddleware',  # Middleware común
+    'django.middleware.csrf.CsrfViewMiddleware',  # Protección contra ataques CSRF
+    'django.contrib.auth.middleware.AuthenticationMiddleware',  # Middleware de autenticación
+    'django.contrib.messages.middleware.MessageMiddleware',  # Middleware de mensajes
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',  # Protección contra clickjacking
 ]
 
+# --- URLs ---
+
 ROOT_URLCONF = 'backend.urls'
+
+# --- Plantillas (Templates) ---
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
+        'DIRS': [],  # Directorios donde buscar plantillas HTML (si los tienes)
+        'APP_DIRS': True,  # Busca plantillas dentro de cada app
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.debug',  # Contexto de depuración
+                'django.template.context_processors.request',  # Contexto de solicitud
+                'django.contrib.auth.context_processors.auth',  # Contexto de autenticación
+                'django.contrib.messages.context_processors.messages',  # Contexto de mensajes
             ],
         },
     },
 ]
 
+# --- WSGI ---
+
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+# --- Base de Datos ---
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'Pixel_Market',
-        'USER': 'Pixel_Market',
-        'PASSWORD': 'pixelmarket1',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'ENGINE': 'django.db.backends.mysql',  # Usamos MySQL como base de datos
+        'NAME': 'Pixel_Market',  # Nombre de la base de datos
+        'USER': 'Pixel_Market',  # Usuario de la base de datos
+        'PASSWORD': 'pixelmarket1',  # Contraseña del usuario de la base de datos
+        'HOST': 'localhost',  # Dirección del servidor de base de datos
+        'PORT': '3306',  # Puerto para conectar con la base de datos
     }
 }
 
 
-# Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
+# --- Validación de Contraseñas ---
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -105,24 +111,41 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
+# --- Internacionalización (idioma y zona horaria) ---
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en-us'  # Configuración del idioma
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'UTC'  # Configuración de la zona horaria
 
-USE_I18N = True
+USE_I18N = True  # Habilita la internacionalización
 
-USE_TZ = True
+USE_TZ = True  # Habilita el uso de zonas horarias
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
+# --- Archivos Estáticos (CSS, JavaScript, imágenes estáticas) ---
 
-STATIC_URL = 'static/'
+# URL pública para acceder a archivos estáticos
+STATIC_URL = '/static/'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
+# Configuración para almacenar archivos estáticos adicionales en el directorio 'static'
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # Directorio adicional de archivos estáticos
+]
 
+# Solo necesario durante el desarrollo para servir archivos estáticos
+if DEBUG:
+    STATIC_ROOT = BASE_DIR / "staticfiles"  # Ruta donde se guardan los archivos estáticos procesados
+
+
+# --- Archivos Multimedia (imágenes, documentos, etc.) ---
+
+# URL pública para acceder a los archivos multimedia (como imágenes de productos)
+MEDIA_URL = '/media/'
+
+# Directorio en el que se guardarán los archivos multimedia cargados
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# --- Clave primaria ---
+
+# Tipo de campo para la clave primaria (auto-incrementable)
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

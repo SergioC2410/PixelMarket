@@ -1,12 +1,12 @@
-# Importamos los módulos necesarios de Django y Django REST Framework (DRF)
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
-from .models import Producto, Categoria
-from .serializers import ProductoSerializer, CategoriaSerializer, ProductoUpdateSerializer
-import json
+from django.core.files.storage import default_storage
 from django.core.paginator import Paginator
 from django.db.models import Q
+import json
+from .models import Producto, Categoria
+from .serializers import ProductoSerializer, CategoriaSerializer, ProductoUpdateSerializer
 
 # Definir constantes
 ERROR_METODO_NO_PERMITIDO = 'Método no permitido'
@@ -19,7 +19,6 @@ def listar_productos(request):
     Soporta paginación, filtrado por categoría, precio y búsqueda por nombre/descripción.
     """
     if request.method == 'GET':
-        # Filtros
         categoria_id = request.GET.get('categoria_id')
         precio_min = request.GET.get('precio_min')
         precio_max = request.GET.get('precio_max')
@@ -57,18 +56,30 @@ def listar_productos(request):
 def crear_producto(request):
     """
     Vista para crear un nuevo producto.
-    Valida los datos y asocia el producto a una categoría.
+    Valida los datos y asocia el producto a una categoría, además permite subir una imagen.
     """
     if request.method == 'POST':
         try:
             # Cargar los datos del cuerpo de la solicitud
             data = json.loads(request.body)
 
-            # Validar y crear el producto usando el serializador
+            # Validación y creación del producto usando el serializador
             serializer = ProductoSerializer(data=data, context={'categoria_id': data.get('categoria_id')})
+
             if serializer.is_valid():
-                serializer.save()
+                producto = serializer.save()
+
+                # Manejar la subida de la imagen (si se proporciona)
+                if 'imagen' in request.FILES:
+                    imagen = request.FILES['imagen']
+                    # Guardar la imagen en el sistema de almacenamiento predeterminado
+                    imagen_path = default_storage.save(f'productos/{producto.id}/{imagen.name}', imagen)
+                    producto.imagen = imagen_path
+                    producto.save()
+
+                # Responder con los datos del producto creado
                 return JsonResponse(serializer.data, status=201)
+
             return JsonResponse(serializer.errors, status=400)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
@@ -98,9 +109,19 @@ def actualizar_producto(request, producto_id):
 
             # Validar y guardar los cambios
             if serializer.is_valid():
-                serializer.save()
+                updated_product = serializer.save()
+
+                # Si se sube una nueva imagen, guardarla
+                if 'imagen' in request.FILES:
+                    imagen = request.FILES['imagen']
+                    imagen_path = default_storage.save(f'productos/{updated_product.id}/{imagen.name}', imagen)
+                    updated_product.imagen = imagen_path
+                    updated_product.save()
+
                 return JsonResponse(serializer.data, status=200)
+
             return JsonResponse(serializer.errors, status=400)
+
         except Producto.DoesNotExist:
             return JsonResponse({'error': 'Producto no encontrado'}, status=404)
         except Exception as e:
@@ -122,6 +143,7 @@ def eliminar_producto(request, producto_id):
             # Eliminar el producto
             producto.delete()
             return JsonResponse({'mensaje': 'Producto eliminado exitosamente'}, status=200)
+
         except Producto.DoesNotExist:
             return JsonResponse({'error': 'Producto no encontrado'}, status=404)
         except Exception as e:
@@ -146,6 +168,7 @@ def listar_productos_por_categoria(request, categoria_id):
             # Serializar los productos
             serializer = ProductoSerializer(productos, many=True)
             return JsonResponse(serializer.data, safe=False)
+
         except Categoria.DoesNotExist:
             return JsonResponse({'error': 'Categoría no encontrada'}, status=404)
 
