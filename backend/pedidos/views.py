@@ -7,6 +7,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
 from productos.models import Producto
+
+# Constantes
+PEDIDO_NO_ENCONTRADO = 'Pedido no encontrado'
 from .models import Pedido, ItemPedido
 from .serializers import PedidoSerializer, ItemPedidoSerializer
 
@@ -99,16 +102,11 @@ def detalle_pedido(request, pedido_id):
     """
     try:
         # Obtener el pedido por su ID.
-        pedido = Pedido.objects.get(id=pedido_id)
-
-        # Serializar el pedido para convertirlo en JSON.
-        serializer = PedidoSerializer(pedido)
-
         # Retornar los detalles del pedido en formato JSON.
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({'error': PEDIDO_NO_ENCONTRADO}, status=status.HTTP_404_NOT_FOUND)
     except Pedido.DoesNotExist:
         # Si el pedido no existe, retornar un error 404.
-        return Response({'error': 'Pedido no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': PEDIDO_NO_ENCONTRADO}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])  # Proteger la vista con autenticación
