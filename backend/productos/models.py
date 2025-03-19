@@ -1,9 +1,14 @@
 # Importamos los módulos necesarios de Django
 from django.db import models
 from django.utils.text import slugify  # Para generar slugs automáticamente
-from django.core.exceptions import ValidationError  # Para validaciones personalizadas
+# Para validaciones personalizadas
+from django.core.exceptions import ValidationError
+# Mayor seguridad de las validaciones con respecto a los valores negativos
+from django.core.validators import MinValueValidator
 
 # Definimos el modelo Categoria
+
+
 class Categoria(models.Model):
     """
     Modelo para representar las categorías de productos.
@@ -37,7 +42,7 @@ class Categoria(models.Model):
         """
         Representación en cadena de la categoría (aparece en el panel de administración).
         """
-        return self.nombre
+        return str(self.nombre)
 
 
 # Definimos el modelo Producto
@@ -47,13 +52,14 @@ class Producto(models.Model):
     Cada producto está asociado a una categoría y tiene varios atributos.
     """
     # Campo para el nombre del producto
-    nombre = models.CharField(max_length=200)
+    nombre = models.CharField(max_length=255, unique=True)
 
     # Campo para la descripción del producto (opcional)
-    descripcion = models.TextField(blank=True, null=True)
+    descripcion = models.TextField()
 
     # Campo para el precio del producto (con 10 dígitos y 2 decimales)
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    precio = models.DecimalField(
+        max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
 
     # Campo para la categoría del producto (clave foránea)
     categoria = models.ForeignKey(
@@ -73,7 +79,8 @@ class Producto(models.Model):
         Método para validar los datos del producto antes de guardarlo.
         """
         if self.precio < 0:
-            raise ValidationError({'precio': 'El precio no puede ser negativo.'})
+            raise ValidationError(
+                {'precio': 'El precio no puede ser negativo.'})
         if self.stock < 0:
             raise ValidationError({'stock': 'El stock no puede ser negativo.'})
 
@@ -87,4 +94,4 @@ class Producto(models.Model):
         """
         Representación en cadena del producto (aparece en el panel de administración).
         """
-        return self.nombre
+        return str(self.nombre)
