@@ -62,6 +62,7 @@
 </template>
 
 <script>
+import { mapActions, mapGetters } from 'vuex';
 import ProductoCard from '@/components/ProductoCard.vue';
 
 export default {
@@ -92,6 +93,8 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(['productosFiltrados']), // Accede a los productos filtrados desde Vuex
+
     breadcrumbs() {
       return [
         { text: 'Inicio', to: '/' },
@@ -99,8 +102,8 @@ export default {
         { text: this.categoriaActual || 'Productos', active: true }
       ];
     },
-    productosFiltrados() {
-      let productos = this.$store.getters.productosFiltrados(this.categoriaActual);
+    productos() {
+      let productos = this.productosFiltrados(this.categoriaActual); // Usamos el getter de Vuex
 
       // Filtrar por búsqueda
       if (this.busqueda) {
@@ -136,15 +139,17 @@ export default {
 
       // Paginación
       const inicio = (this.paginaActual - 1) * this.productosPorPagina;
-      const fin = inicio + this.productosPorPagina;
-      return productos.slice(inicio, fin);
+      return productos.slice(inicio, inicio + this.productosPorPagina);
     },
     totalProductos() {
-      return this.$store.getters.productosFiltrados(this.categoriaActual).length;
+      return this.productosFiltrados(this.categoriaActual).length;
     }
   },
-  created() {
-    this.$store.dispatch('cargarProductos'); // Cargar productos al iniciar la vista
+  methods: {
+    ...mapActions(['cargarProductos']), // Mapeamos la acción de Vuex
+  },
+  mounted() {
+    this.cargarProductos(); // Llamamos a la acción al montar el componente
   }
 };
 </script>

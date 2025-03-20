@@ -16,10 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
+
+def home(request):
+    return JsonResponse({"mensaje": "Bienvenido a la API de productos"}, status=200)
 
 urlpatterns = [
-    path('admin/', admin.site.urls),  # Ruta del panel de administración de Django
-
-    # Incluye las rutas de la aplicación de productos
-    path('productos/', include('productos.urls')),  # Aquí 'productos' es el nombre de tu aplicación de productos
+    path('admin/', admin.site.urls),  
+    path('api/', include('productos.urls')),
+    path('', home),  # Redirigir la raíz a un mensaje JSON
 ]
+

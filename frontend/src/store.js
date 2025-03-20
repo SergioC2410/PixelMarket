@@ -1,5 +1,5 @@
-import { createStore } from 'vuex'; // Usa 'createStore' en lugar de 'Vuex.Store'
-import axios from 'axios';
+import { createStore } from 'vuex';
+import axiosInstance from '@/util/axios';
 
 export default createStore({
   state: {
@@ -29,8 +29,7 @@ export default createStore({
     async cargarCategorias({ commit }) {
       commit('setCargando', true);
       try {
-        // Ejemplo de llamada a una API para obtener categorías
-        const response = await axios.get('/api/categorias');
+        const response = await axiosInstance.get('categorias/'); // Usa axiosInstance
         commit('setCategorias', response.data);
       } catch (error) {
         console.error('Error al cargar categorías:', error);
@@ -41,8 +40,7 @@ export default createStore({
     async cargarProductos({ commit }) {
       commit('setCargando', true);
       try {
-        // Ejemplo de llamada a una API para obtener productos
-        const response = await axios.get('/api/productos');
+        const response = await axiosInstance.get('productos/'); // Usa axiosInstance
         commit('setProductos', response.data);
       } catch (error) {
         console.error('Error al cargar productos:', error);

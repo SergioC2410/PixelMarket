@@ -46,8 +46,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',  # Sistema de mensajes
     'django.contrib.staticfiles',  # Archivos estáticos (CSS, JS, imágenes estáticas)
     'productos',  # Tu app personalizada para manejar productos
+    'corsheaders',
 ]
-
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8080',  # Origen de tu frontend
+]
 # --- Middleware ---
 
 MIDDLEWARE = [
@@ -58,6 +61,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',  # Middleware de autenticación
     'django.contrib.messages.middleware.MessageMiddleware',  # Middleware de mensajes
     'django.middleware.clickjacking.XFrameOptionsMiddleware',  # Protección contra clickjacking
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 # --- URLs ---
