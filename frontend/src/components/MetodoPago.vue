@@ -23,3 +23,5 @@
   <style scoped>
   /* Estilos específicos para el componente de pago */
   </style>
+
+frontend\src\components\MetodoPago.vue

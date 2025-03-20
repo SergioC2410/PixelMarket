@@ -1,9 +1,9 @@
 import { createApp } from 'vue';  // Importa la función createApp de Vue
-import App from './App.vue';      // Importa el componente principal App.vue
-import router from './router';    // Importa el router (que creamos en src/router/index.js)
+import App from '@/App.vue';      // Importa el componente principal App.vue
+import router from '@/router';    // Importa el router (que creamos en src/router/index.js)
+import store from '@/store';      // Importa el store de Vuex
 import 'bootstrap/dist/css/bootstrap.css';  // Importa Bootstrap CSS
 import 'bootstrap/dist/js/bootstrap.js';    // Importa Bootstrap JS
-import store from './store'; // Importa el store que acabamos de configurar
 
 // Crea la aplicación Vue
 const app = createApp(App);
