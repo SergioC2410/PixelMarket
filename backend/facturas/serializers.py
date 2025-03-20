@@ -7,6 +7,7 @@ class ItemPedidoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ItemPedido
         fields = ['id', 'producto', 'cantidad', 'precio_unitario']
+        read_only_fields = ['id']  # Hace que el campo 'id' sea de solo lectura
 
 # Serializer para el pedido
 class PedidoSerializer(serializers.ModelSerializer):
@@ -15,6 +16,7 @@ class PedidoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pedido
         fields = ['id', 'usuario', 'fecha', 'items']
+        read_only_fields = ['id', 'fecha']  # Hace que 'id' y 'fecha' sean de solo lectura
 
 # Serializer para la factura
 class FacturaSerializer(serializers.ModelSerializer):
@@ -23,3 +25,4 @@ class FacturaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Factura
         fields = ['factura_id', 'pedido', 'fecha_emision', 'total']
+        read_only_fields = ['factura_id', 'fecha_emision', 'total']  # Hace que estos campos sean de solo lectura

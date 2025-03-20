@@ -23,7 +23,10 @@ def home(request):
 
 urlpatterns = [
     path('admin/', admin.site.urls),  
-    path('api/', include('productos.urls')),
+    path('api/', include('productos.urls')),  # URLs de productos
+    path('api/', include('pedidos.urls')),   # URLs de pedidos
+    path('api/', include('usuarios.urls')),  # Incluye las URLs de la app 'usuarios'
+    path('api/', include('facturas.urls')),  # Incluye las URLs de la app 'facturas'
     path('', home),  # Redirigir la raíz a un mensaje JSON
 ]
 

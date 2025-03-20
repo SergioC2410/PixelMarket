@@ -39,14 +39,21 @@ REST_FRAMEWORK = {
 # --- Aplicaciones Instaladas ---
 
 INSTALLED_APPS = [
-    'django.contrib.admin',  # Interfaz de administración de Django
-    'django.contrib.auth',  # Autenticación de usuarios
-    'django.contrib.contenttypes',  # Gestor de tipos de contenido
-    'django.contrib.sessions',  # Gestión de sesiones
-    'django.contrib.messages',  # Sistema de mensajes
-    'django.contrib.staticfiles',  # Archivos estáticos (CSS, JS, imágenes estáticas)
-    'productos',  # Tu app personalizada para manejar productos
-    'corsheaders',
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    
+    # Aplicaciones de terceros
+    'corsheaders',  # Debe estar antes de las apps locales
+    
+    # Tus aplicaciones personalizadas
+    'productos',  # App para manejar productos
+    'pedidos',    # Nueva app para manejar pedidos (agrégala aquí)
+    'usuarios',  # App para manejar usuarios
+    'facturas',  # App para manejar facturas
 ]
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',  # Origen de tu frontend
@@ -54,14 +61,14 @@ CORS_ALLOWED_ORIGINS = [
 # --- Middleware ---
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',  # Seguridad en el sitio
-    'django.contrib.sessions.middleware.SessionMiddleware',  # Middleware de sesiones
-    'django.middleware.common.CommonMiddleware',  # Middleware común
-    'django.middleware.csrf.CsrfViewMiddleware',  # Protección contra ataques CSRF
-    'django.contrib.auth.middleware.AuthenticationMiddleware',  # Middleware de autenticación
-    'django.contrib.messages.middleware.MessageMiddleware',  # Middleware de mensajes
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',  # Protección contra clickjacking
-    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Debe estar antes de CommonMiddleware
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 # --- URLs ---
