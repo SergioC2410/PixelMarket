@@ -5,6 +5,7 @@ import 'bootstrap/dist/css/bootstrap.css';  // Importa Bootstrap CSS
 import 'bootstrap/dist/js/bootstrap.js';    // Importa Bootstrap JS
 import store from './store'; // Importa el store que acabamos de configurar
 
+
 // Crea la aplicación Vue
 const app = createApp(App);
 
