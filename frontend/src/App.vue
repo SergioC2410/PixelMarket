@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+   <div id="app">
     <!-- Header: Barra de navegación -->
     <header class="header">
       <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
@@ -40,6 +40,9 @@
       </nav>
     </header>
 
+    <!-- Barra de búsqueda solo en la página principal -->
+    <SearchBar v-if="$route.name === 'Home'" />
+
     <!-- Contenido principal -->
     <main class="main-content">
       <router-view></router-view>
@@ -55,8 +58,12 @@
 </template>
 
 <script>
+// Importa el componente SearchBar
+import SearchBar from './components/SearchBar.vue';
+
 export default {
   name: 'App',
+  components: { SearchBar } // Asegúrate de que SearchBar esté registrado aquí
 };
 </script>
 
@@ -64,10 +71,32 @@ export default {
 /* Estilos globales minimalistas */
 
 /* Estilos para el logo */
+/* Variables CSS */
+:root {
+  --color-primary: #047ffa;
+  --color-error: #e74c3c;
+  --color-success: #2ecc71;
+  --border-radius: 8px;
+  --transition-speed: 0.3s;
+  --color-text: #2d3436; /* Gris oscuro para texto */
+  --color-background: #f8f9fa; /* Fondo claro */
+  --color-white: #ffffff; /* Blanco */
+}
+
+/* Estilos globales */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-text);
+  background-color: var(--color-background);
+}
+
+/* Estilos para el logo */
 .logo {
   height: 111px; 
   width: auto;
-  transition: transform 0.2s ease;
+  transition: transform var(--transition-speed) ease;
   margin: -10px 0; /* Ajustamos el margen para compensar el tamaño */
 }
 
@@ -85,46 +114,39 @@ export default {
 .navbar-brand {
   padding: 0; /* Elimina el padding del contenedor del logo */
 }
-:root {
-  /* Colores base */
-  --color-primary: #0a80ff; /* Azul moderno */
-  --color-secondary: #6c757d; /* Gris neutro */
-  --color-text: #2d3436; /* Gris oscuro para texto */
-  --color-background: #f8f9fa; /* Fondo claro */
-  --color-white: #ffffff; /* Blanco */
 
-  /* Tipografía */
-  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-family-serif: Georgia, 'Times New Roman', serif;
-  --font-size-base: 1rem; /* 16px por defecto */
-  --line-height-base: 1.6;
-
-  /* Espaciado */
-  --spacing-unit: 1rem; /* Unidad base para márgenes y paddings */
+/* Barra de búsqueda */
+.search-bar {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
 }
 
-/* Reset básico */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+.search-bar input {
+  width: calc(100% - 100px); /* Ajusta el ancho del input */
+  padding: 12px;
+  border-radius: var(--border-radius);
+  border: 2px solid #ecf0f1;
 }
 
-/* Estilos globales */
-body {
-  font-family: var(--font-family-sans);
-  font-size: var(--font-size-base);
-  line-height: var(--line-height-base);
-  color: var(--color-text);
-  background-color: var(--color-background);
+.search-bar input:focus {
+  border-color: var(--color-primary);
+}
+
+.search-bar button {
+  padding: 12px;
+  background-color: var(--color-primary);
+  color: white;
+  border-radius: var(--border-radius);
+  cursor: pointer;
 }
 
 /* Encabezados */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-family-sans);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-weight: 600; /* Semi-bold */
   color: var(--color-text);
-  margin-bottom: calc(var(--spacing-unit) * 0.5);
+  margin-bottom: calc(1rem * 0.5);
 }
 
 h1 { font-size: 2.5rem; } /* 40px */
@@ -136,7 +158,7 @@ h6 { font-size: 1rem; }   /* 16px */
 
 /* Párrafos */
 p {
-  margin-bottom: var(--spacing-unit);
+  margin-bottom: 1rem;
   color: var(--color-text);
 }
 
@@ -144,7 +166,7 @@ p {
 a {
   color: var(--color-primary);
   text-decoration: none;
-  transition: color 0.2s ease;
+  transition: color var(--transition-speed) ease;
 }
 
 a:hover {
@@ -153,16 +175,16 @@ a:hover {
 
 /* Botones */
 button {
-  font-family: var(--font-family-sans);
-  font-size: var(--font-size-base);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
   font-weight: 500;
-  padding: calc(var(--spacing-unit) * 0.5) calc(var(--spacing-unit) * 1);
+  padding: calc(1rem * 0.5) calc(1rem * 1);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   background-color: var(--color-primary);
   color: var(--color-white);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color var(--transition-speed) ease;
 }
 
 button:hover {
@@ -171,13 +193,13 @@ button:hover {
 
 /* Formularios */
 input, textarea, select {
-  font-family: var(--font-family-sans);
-  font-size: var(--font-size-base);
-  padding: calc(var(--spacing-unit) * 0.5);
-  border: 1px solid var(--color-secondary);
-  border-radius: 4px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  padding: calc(1rem * 0.5);
+  border: 1px solid #ecf0f1;
+  border-radius: var(--border-radius);
   width: 100%;
-  margin-bottom: var(--spacing-unit);
+  margin-bottom: 1rem;
 }
 
 /* Contenedores */
@@ -185,13 +207,18 @@ input, textarea, select {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 calc(var(--spacing-unit) * 1);
+  padding: 0 calc(1rem * 1);
 }
 
 /* Utilidades */
 .text-center { text-align: center; }
 .text-primary { color: var(--color-primary); }
-.text-secondary { color: var(--color-secondary); }
+.text-secondary { color: #6c757d; }
 .bg-white { background-color: var(--color-white); }
 .shadow-sm { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+
+/* Footer estilos */
+.footer {
+   margin-top :20px
+}
 </style>

@@ -19,20 +19,7 @@ class Usuario(AbstractUser):
     Extiende el modelo de usuario predeterminado de Django con campos adicionales
     y funcionalidades específicas para el proyecto.
     """
-
-    # Opciones para el campo 'rol'
-    ROLES = (
-        ('comprador', 'Comprador'),  # Rol de comprador
-        ('vendedor', 'Vendedor'),    # Rol de vendedor
-    )
-
-    # Campos adicionales para el usuario
-    rol = models.CharField(
-        max_length=10,
-        choices=ROLES,
-        default='comprador',  # Valor predeterminado: comprador
-        verbose_name='Rol del usuario'
-    )
+    # Campos adicionales
     telefono = PhoneNumberField(
         region='VE',  # Ajusta la región según tu país
         blank=True,   # El campo es opcional
@@ -58,6 +45,7 @@ class Usuario(AbstractUser):
         unique=True,    # La cédula debe ser única en la base de datos
         blank=False,    # El campo es obligatorio
         null=False,     # No puede ser NULL en la base de datos
+        default='00000000',  # Valor predeterminado
         verbose_name='Cédula',
         help_text='Ingrese su número de cédula (solo números).'  # Mensaje de ayuda
     )
@@ -94,22 +82,6 @@ class Usuario(AbstractUser):
         """
         return self.username
 
-    # Método para verificar si el usuario es un comprador
-    def es_comprador(self):
-        """
-        Verifica si el usuario tiene el rol de comprador.
-        Devuelve True si el rol es 'comprador', False en caso contrario.
-        """
-        return self.rol == 'comprador'
-
-    # Método para verificar si el usuario es un vendedor
-    def es_vendedor(self):
-        """
-        Verifica si el usuario tiene el rol de vendedor.
-        Devuelve True si el rol es 'vendedor', False en caso contrario.
-        """
-        return self.rol == 'vendedor'
-
     # Método para obtener el nombre completo del usuario
     def nombre_completo(self):
         """
@@ -130,7 +102,11 @@ class Usuario(AbstractUser):
             validate_email(self.email)  # Valida que el email tenga un formato válido
         except ValidationError:
             raise ValidationError({'email': 'Ingresa un correo electrónico válido.'})
-
+        
+        if not self.cedula.isdigit():
+            raise ValidationError({'cedula': 'La cédula debe contener solo números.'})
+        if len(self.cedula) < 7 or len(self.cedula) > 20:
+            raise ValidationError({'cedula': 'La cédula debe tener entre 7 y 20 dígitos.'})
 
 
     # Mejoras sugeridas:
