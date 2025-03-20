@@ -31,6 +31,10 @@
     <div class="checkout-summary">
       <h2>Resumen de Pedido</h2>
       <div class="summary-row">
+        <span class="summary-label">Tasa de cambio:</span>
+        <span class="summary-value">1 USD = {{ formatCurrency(exchangeRate) }} BS.F</span>
+      </div>
+      <div class="summary-row">
         <span class="summary-label">Subtotal:</span>
         <span class="summary-value">BS.F: {{ formatCurrency(subtotal) }} | Dólares: {{ formatCurrencyUSD(subtotal) }}</span>
       </div>
@@ -50,12 +54,16 @@
         <span class="summary-label">Total:</span>
         <span class="summary-value">BS.F: {{ formatCurrency(totalWithDiscount) }} | Dólares: {{ formatCurrencyUSD(totalWithDiscount) }}</span>
       </div>
-      <button @click="proceedToCheckout" class="checkout-btn">Finalizar Compra</button>
+      <router-link to="/metodo-de-pago" class="checkout-btn">
+  Finalizar Compra
+</router-link>
     </div>
   </div>
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   data() {
     return {
@@ -65,7 +73,7 @@ export default {
       ],
       shippingCost: 500,
       taxRate: 0.16,
-      exchangeRate: 100 // Ejemplo de tipo de cambio
+      exchangeRate: 1, // Inicializamos en 1, se actualizará con la API
     };
   },
   computed: {
@@ -118,8 +126,21 @@ export default {
       this.cartItems = this.cartItems.filter(i => i.id !== item.id);
     },
     proceedToCheckout() {
-      alert('Procesando el pago...');
+      this.$router.push({ name: 'metodo-de-pago' });
+    },
+    async fetchExchangeRate() {
+      try {
+        const response = await axios.get('https://s3.amazonaws.com/dolartoday/data.json');
+        // Obtener el precio del dólar desde la API (ejemplo: DolarToday)
+        this.exchangeRate = response.data.USD.promedio_real;
+      } catch (error) {
+        console.error('Error al obtener el tipo de cambio:', error);
+        this.exchangeRate =66.78 ; // Valor por defecto en caso de error
+      }
     }
+  },
+  mounted() {
+    this.fetchExchangeRate(); // Llamar a la API al cargar el componente
   }
 };
 </script>
@@ -130,7 +151,7 @@ export default {
   grid-template-columns: 2fr 1fr;
   gap: 2rem;
   padding: 2rem;
-  background-color: #f9f9f9;
+  background-color: #f0f8ff;
 }
 
 .cart-item {
@@ -138,9 +159,10 @@ export default {
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding: 1rem;
-  border: 1px solid #ddd;
+  border: 1px solid #ffff;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  background-color: #ffff;
 }
 
 .product-image {
@@ -195,7 +217,7 @@ export default {
 }
 
 .checkout-summary {
-  background-color: #f8f9fa;
+  background-color: #ffff;
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -203,14 +225,12 @@ export default {
 
 .summary-row {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  justify-content: space-between;
   margin: 1rem 0;
 }
 
 .summary-label {
   font-weight: bold;
-  margin-bottom: 0.5rem;
 }
 
 .summary-value {
