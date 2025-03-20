@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "chrome",
+        "request": "launch",
+        "name": "Vue.js: Chrome",
+        "url": "http://localhost:8080", // Ajusta el puerto si es necesario
+        "webRoot": "${workspaceFolder}/frontend", // Ruta a tu carpeta frontend
+        "sourceMapPathOverrides": {
+          "webpack:///./*": "${webRoot}/*"
+        }
+      }
+    ]
+  }

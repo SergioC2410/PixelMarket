@@ -8,11 +8,10 @@ export default createStore({
     cargando: false,
   },
   getters: {
-    categorias: state => state.categorias,
-    productosFiltrados: (state) => (categoria) => {
-      return state.productos.filter(p => p.categoria === categoria);
-    },
-    cargando: state => state.cargando,
+    categorias: (state) => state.categorias,
+    productosFiltrados: (state) => (categoria) =>
+      state.productos.filter((p) => p.categoria === categoria),
+    cargando: (state) => state.cargando,
   },
   mutations: {
     setCategorias(state, categorias) {
@@ -29,10 +28,17 @@ export default createStore({
     async cargarCategorias({ commit }) {
       commit('setCargando', true);
       try {
-        const response = await axiosInstance.get('categorias/'); // Usa axiosInstance
-        commit('setCategorias', response.data);
+        const response = await axiosInstance.get('categorias/');
+        // Comprobamos que la respuesta es un array
+        if (Array.isArray(response.data)) {
+          commit('setCategorias', response.data);
+        } else {
+          console.error('La respuesta de categorías no es un array:', response.data);
+          commit('setCategorias', []); // Asignamos un array vacío en caso de error
+        }
       } catch (error) {
         console.error('Error al cargar categorías:', error);
+        commit('setCategorias', []); // Asignamos un array vacío en caso de error
       } finally {
         commit('setCargando', false);
       }
@@ -40,12 +46,21 @@ export default createStore({
     async cargarProductos({ commit }) {
       commit('setCargando', true);
       try {
-        const response = await axiosInstance.get('productos/'); // Usa axiosInstance
-        commit('setProductos', response.data);
+      const response = await axiosInstance.get('productos/');
+      console.log('Respuesta de productos:', response.data);
+
+      // Comprobamos si la respuesta tiene la estructura correcta
+      if (response.data && Array.isArray(response.data.productos)) {
+        commit('setProductos', response.data.productos); // Accedemos a la propiedad 'productos' de la respuesta
+      } else {
+        console.error('La respuesta de productos no tiene la estructura esperada:', response.data);
+        commit('setProductos', []); // Asignamos un array vacío si no tiene la estructura esperada
+      }
       } catch (error) {
-        console.error('Error al cargar productos:', error);
+      console.error('Error al cargar productos:', error);
+      commit('setProductos', []); // Asignamos un array vacío en caso de error
       } finally {
-        commit('setCargando', false);
+      commit('setCargando', false);
       }
     },
   },

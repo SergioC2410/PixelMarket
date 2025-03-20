@@ -7,11 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h2>Productos {{ categoriaActual ? `- ${categoriaActual}` : '' }}</h2>
       <div>
-        <b-form-input
-          v-model="busqueda"
-          placeholder="Buscar productos..."
-          class="me-2"
-        ></b-form-input>
+        <b-form-input v-model="busqueda" placeholder="Buscar productos..." class="me-2"></b-form-input>
         <b-button @click="mostrarFiltros = !mostrarFiltros" variant="outline-secondary">
           <i class="fas fa-filter"></i> Filtros
         </b-button>
@@ -31,7 +27,7 @@
     </b-collapse>
 
     <!-- Indicador de carga -->
-    <div v-if="$store.state.cargando" class="text-center">
+    <div v-if="cargando" class="text-center">
       <b-spinner variant="primary"></b-spinner>
       <p>Cargando productos...</p>
     </div>
@@ -39,14 +35,14 @@
     <!-- Lista de productos -->
     <div v-else>
       <div class="row row-cols-1 row-cols-md-3 g-4">
-        <div class="col" v-for="producto in productosFiltrados" :key="producto.id">
-          <ProductoCard :producto="producto" />
+        <div class="col" v-for="producto in productosPaginados" :key="producto.id">
+          <ProductoCard :producto="producto" @click="verDetalles(producto.id)" />
         </div>
       </div>
 
       <!-- Paginación -->
       <b-pagination
-        v-if="productosFiltrados.length > 0"
+        v-if="productos.length > 0"
         v-model="paginaActual"
         :total-rows="totalProductos"
         :per-page="productosPorPagina"
@@ -54,7 +50,7 @@
       ></b-pagination>
 
       <!-- Mensaje si no hay productos -->
-      <div v-if="productosFiltrados.length === 0" class="alert alert-warning mt-4">
+      <div v-if="productos.length === 0" class="alert alert-warning mt-4">
         No hay productos disponibles en esta categoría
       </div>
     </div>
@@ -76,7 +72,7 @@ export default {
       filtroPrecio: null,
       filtroOrden: null,
       paginaActual: 1,
-      productosPorPagina: 6, // Número de productos por página
+      productosPorPagina: 6,
       opcionesPrecio: [
         { value: null, text: 'Filtrar por precio' },
         { value: '0-50', text: 'Menos de $50' },
@@ -93,7 +89,28 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(['productosFiltrados']), // Accede a los productos filtrados desde Vuex
+    ...mapGetters(['productosFiltrados', 'cargando']),
+
+    productos() {
+      let productos = this.productosFiltrados(this.categoriaActual) || [];
+      
+      if (this.busqueda) {
+        productos = productos.filter(p =>
+          p.nombre.toLowerCase().includes(this.busqueda.toLowerCase())
+        );
+      }
+
+      return this.ordenarProductos(productos);
+    },
+
+    totalProductos() {
+      return this.productos.length;
+    },
+
+    productosPaginados() {
+      const inicio = (this.paginaActual - 1) * this.productosPorPagina;
+      return this.productos.slice(inicio, inicio + this.productosPorPagina);
+    },
 
     breadcrumbs() {
       return [
@@ -102,60 +119,42 @@ export default {
         { text: this.categoriaActual || 'Productos', active: true }
       ];
     },
-    productos() {
-      let productos = this.productosFiltrados(this.categoriaActual); // Usamos el getter de Vuex
-
-      // Filtrar por búsqueda
-      if (this.busqueda) {
-        productos = productos.filter(p =>
-          p.nombre.toLowerCase().includes(this.busqueda.toLowerCase()) ||
-          p.descripcion.toLowerCase().includes(this.busqueda.toLowerCase())
-        );
-      }
-
-      // Filtrar por precio
-      if (this.filtroPrecio) {
-        const [min, max] = this.filtroPrecio.split('-');
-        productos = productos.filter(p => {
-          const precio = p.precio;
-          return (!min || precio >= parseFloat(min)) && (!max || precio <= parseFloat(max));
-        });
-      }
-
-      // Ordenar
-      if (this.filtroOrden) {
-        const [campo, orden] = this.filtroOrden.split('-');
-        productos.sort((a, b) => {
-          if (campo === 'precio') {
-            return orden === 'asc' ? a.precio - b.precio : b.precio - a.precio;
-          } else if (campo === 'nombre') {
-            return orden === 'asc' 
-              ? a.nombre.localeCompare(b.nombre) 
-              : b.nombre.localeCompare(a.nombre);
-          }
-          return 0;
-        });
-      }
-
-      // Paginación
-      const inicio = (this.paginaActual - 1) * this.productosPorPagina;
-      return productos.slice(inicio, inicio + this.productosPorPagina);
-    },
-    totalProductos() {
-      return this.productosFiltrados(this.categoriaActual).length;
-    }
   },
   methods: {
-    ...mapActions(['cargarProductos']), // Mapeamos la acción de Vuex
+    ...mapActions(['cargarProductos']),
+
+    cargarFiltros() {
+      if (!this.categoriaActual) {
+        this.filtroPrecio = null;
+        this.filtroOrden = null;
+      }
+    },
+
+    ordenarProductos(productos) {
+      if (this.filtroOrden === 'precio-asc') {
+        return productos.sort((a, b) => a.precio - b.precio);
+      } else if (this.filtroOrden === 'precio-desc') {
+        return productos.sort((a, b) => b.precio - a.precio);
+      } else if (this.filtroOrden === 'nombre-asc') {
+        return productos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      } else if (this.filtroOrden === 'nombre-desc') {
+        return productos.sort((a, b) => b.nombre.localeCompare(a.nombre));
+      }
+      return productos;
+    },
+
+    verDetalles(id) {
+      this.$router.push({ name: 'DetalleProducto', params: { id } });
+    }
   },
   mounted() {
-    this.cargarProductos(); // Llamamos a la acción al montar el componente
-  }
+    this.cargarProductos();
+    this.cargarFiltros();
+  },
 };
 </script>
 
 <style scoped>
-/* Estilos específicos para la página de productos */
 .card {
   transition: transform 0.2s, box-shadow 0.2s;
 }
