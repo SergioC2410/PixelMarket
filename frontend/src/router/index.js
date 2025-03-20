@@ -7,7 +7,7 @@ import ProductosView from '@/views/Productos/ProductosView.vue';
 import CheckoutView from '@/views/Checkout/CheckoutView.vue';
 import Register from '@/views/Auth/Register.vue';
 import Contraseña from '@/views/Auth/Contraseña.vue';
-import MetodoPago from '.@/components/MetodoPago.vue';
+import MetodoPago from '@/components/MetodoPago.vue';
 
 const routes = [
   { 
