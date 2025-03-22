@@ -6,6 +6,7 @@ import { BootstrapVue3 } from 'bootstrap-vue-3'; // Importa BootstrapVue3 para V
 import 'bootstrap/dist/css/bootstrap.min.css';  // Estilos básicos de Bootstrap
 import 'bootstrap-vue-3/dist/bootstrap-vue-3.css'; // Estilos de BootstrapVue3
 import 'bootstrap/dist/js/bootstrap.js';        // Importa Bootstrap JS
+import Swal from 'sweetalert2';                  // Importa SweetAlert2
 
 // Crea la aplicación Vue
 const app = createApp(App);
@@ -14,7 +15,7 @@ const app = createApp(App);
 app.use(router);         // Navegación con Vue Router
 app.use(store);          // Gestión del estado global con Vuex
 app.use(BootstrapVue3);  // Componentes de BootstrapVue3
-
+app.config.globalProperties.$swal = Swal; // Configura SweetAlert2 como propiedad global
 // Monta la aplicación en el elemento con id "app" del archivo index.html
 app.mount('#app');
 

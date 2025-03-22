@@ -6,11 +6,11 @@
         <div id="carouselProducto" class="carousel slide" data-bs-ride="carousel">
           <div class="carousel-inner">
             <div 
-              v-for="(imagen, index) in producto?.imagenes || []" 
+              v-for="(imagen, index) in producto.imagenes" 
               :key="index" 
               :class="['carousel-item', { active: index === 0 }]"
             >
-              <img :src="imagen.url" class="d-block w-100" :alt="producto?.nombre || 'Producto'">
+              <img :src="imagen.url" class="d-block w-100" :alt="producto.nombre || 'Producto'">
             </div>
           </div>
           <button class="carousel-control-prev" type="button" data-bs-target="#carouselProducto" data-bs-slide="prev">
@@ -43,7 +43,7 @@
 
           <!-- Clasificación del producto -->
           <p class="text-warning">
-            <i class="fas fa-star"></i> {{ producto.clasificacion }} ({{ producto.clasificacion }} estrellas)
+            <i class="fas fa-star"></i> {{ producto.clasificacion }} estrellas
           </p>
 
           <!-- Características -->
@@ -72,52 +72,49 @@
             {{ mensajeCarrito }}
           </div>
         </template>
-
-        <!-- Mensaje de error si no se cargó el producto -->
-        <template v-else>
-          <div class="alert alert-danger">
-            <strong>Error:</strong> No se pudo cargar la información del producto.
-          </div>
-        </template>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import axios from 'axios';
-
 export default {
   name: 'DetalleProducto',
   data() {
     return {
-      producto: null,        // Almacena el producto cargado desde la API
+      // Datos ficticios para el producto
+      producto: {
+        nombre: 'Laptop HP Spectre',
+        descripcion: 'Una laptop de alto rendimiento con diseño premium.',
+        precio: 1500.00,
+        descuento: 20, // Descuento del 20%
+        clasificacion: 4.5,
+        imagenes: [
+          { url: 'https://via.placeholder.com/400x300.png?text=Laptop+Vista+Frontal' },
+          { url: 'https://via.placeholder.com/400x300.png?text=Laptop+Vista+Lateral' },
+          { url: 'https://via.placeholder.com/400x300.png?text=Laptop+Vista+Posterior' }
+        ],
+        caracteristicas: [
+          'Procesador Intel Core i7 de última generación',
+          '16GB RAM',
+          'Pantalla táctil 4K UHD',
+          '1TB SSD',
+          'Batería de larga duración'
+        ]
+      },
       agregandoAlCarrito: false,
       mensajeCarrito: ''
     };
   },
   computed: {
-    // Calcula el precio con descuento si existe
+    // Calcula el precio con descuento si aplica
     precioConDescuento() {
-      if (!this.producto || !this.producto.descuento) return this.producto?.precio || 0;
+      if (!this.producto || !this.producto.descuento) return this.producto.precio || 0;
       return this.producto.precio * (1 - this.producto.descuento / 100);
     }
   },
-  created() {
-    this.cargarProducto();
-  },
   methods: {
-    async cargarProducto() {
-      const productoId = this.$route.params.id;
-      try {
-        // Llamada a la API para obtener el producto
-        const respuesta = await axios.get(`https://api.tusitio.com/productos/${productoId}`);
-        this.producto = respuesta.data;
-      } catch (error) {
-        console.error('Error al cargar el producto:', error);
-        this.producto = null;
-      }
-    },
+    // Simula la acción de agregar el producto al carrito
     agregarAlCarrito() {
       this.agregandoAlCarrito = true;
       this.mensajeCarrito = '';
