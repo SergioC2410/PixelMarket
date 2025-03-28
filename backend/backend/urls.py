@@ -17,6 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
+from django.conf import settings
+from django.conf.urls.static import static
 
 def home(request):
     return JsonResponse({"mensaje": "Bienvenido a la API de productos"}, status=200)
@@ -30,3 +32,6 @@ urlpatterns = [
     path('', home),  # Redirigir la raíz a un mensaje JSON
 ]
 
+# Solo en desarrollo: servir archivos media
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

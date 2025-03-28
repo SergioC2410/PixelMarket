@@ -1,67 +1,286 @@
 import { createStore } from 'vuex';
 import axiosInstance from '@/util/axios';
 
+const construirUrlCompleta = (imagenPath) => {
+  if (!imagenPath) return null;
+  
+  // Si ya es una URL completa
+  if (imagenPath.startsWith('http')) {
+    return imagenPath;
+  }
+  
+  // Construir URL basada en tu entorno
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://tudominio.com/media/' 
+    : 'http://localhost:8000/media/';
+  
+  return baseUrl + imagenPath;
+};
+// Helper para crear FormData
+const crearFormData = (datos) => {
+  const formData = new FormData();
+  Object.entries(datos).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      // Manejo de archivos y arrays
+      if (value instanceof File) {
+        formData.append(key, value, value.name);
+      } else if (Array.isArray(value)) {
+        value.forEach((item, index) => {
+          formData.append(`${key}[${index}]`, item);
+        });
+      } else {
+        formData.append(key, value);
+      }
+    }
+  });
+  return formData;
+};
+
 export default createStore({
   state: {
+    token: localStorage.getItem('token') || null,
     categorias: [],
     productos: [],
+    productoActual: null,
+    productosCache: {},
     cargando: false,
+    error: null,
+    paginacion: {
+      currentPage: 1,
+      totalPages: 1,
+      totalItems: 0,
+      itemsPerPage: 10
+    }
   },
+  
   getters: {
-    categorias: (state) => state.categorias,
-    productosFiltrados: (state) => (categoria) =>
-      state.productos.filter((p) => p.categoria === categoria),
-    cargando: (state) => state.cargando,
+    todasCategorias: (state) => state.categorias,
+    todosProductos: (state) => state.productos,
+    productoDetalle: (state) => state.productoActual,
+    estaCargando: (state) => state.cargando,
+    ultimoError: (state) => state.error,
+    datosPaginacion: (state) => state.paginacion,
+    estaAutenticado: (state) => !!state.token,
+
+    productosPorCategoria: (state) => (categoriaId) => {
+      return state.productos.filter(p => p.categoria?.id === categoriaId);
+    },
+
+    productosDisponibles: (state) => {
+      return state.productos.filter(p => p.stock > 0);
+    }
   },
+  
   mutations: {
-    setCategorias(state, categorias) {
+    SET_TOKEN(state, token) {
+      state.token = token;
+      localStorage.setItem('token', token);
+    },
+
+    CLEAR_TOKEN(state) {
+      state.token = null;
+      localStorage.removeItem('token');
+    },
+
+    SET_CATEGORIAS(state, categorias) {
       state.categorias = categorias;
     },
-    setProductos(state, productos) {
+
+    SET_PRODUCTOS(state, productos) {
       state.productos = productos;
     },
-    setCargando(state, cargando) {
-      state.cargando = cargando;
+
+    SET_PRODUCTO_ACTUAL(state, producto) {
+      state.productoActual = producto;
     },
+
+    SET_CARGANDO(state, estado) {
+      state.cargando = estado;
+    },
+
+    SET_ERROR(state, error) {
+      state.error = error;
+    },
+
+    AGREGAR_PRODUCTO(state, producto) {
+      state.productos.unshift(producto);
+      state.productosCache[producto.id] = producto;
+    },
+
+    ACTUALIZAR_PRODUCTO(state, productoActualizado) {
+      const index = state.productos.findIndex(p => p.id === productoActualizado.id);
+      if (index !== -1) {
+        state.productos.splice(index, 1, productoActualizado);
+      }
+      state.productosCache[productoActualizado.id] = productoActualizado;
+    },
+
+    SET_PAGINACION(state, { currentPage, totalPages, totalItems }) {
+      state.paginacion = {
+        currentPage: currentPage || 1,
+        totalPages: totalPages || 1,
+        totalItems: totalItems || 0,
+        itemsPerPage: state.paginacion.itemsPerPage
+      };
+    },
+
+    CACHE_PRODUCTO(state, producto) {
+      state.productosCache[producto.id] = producto;
+    }
   },
+  
   actions: {
-    async cargarCategorias({ commit }) {
-      commit('setCargando', true);
+    // Autenticación
+    async login({ commit }, credenciales) {
       try {
-        const response = await axiosInstance.get('categorias/');
-        // Comprobamos que la respuesta es un array
-        if (Array.isArray(response.data)) {
-          commit('setCategorias', response.data);
-        } else {
-          console.error('La respuesta de categorías no es un array:', response.data);
-          commit('setCategorias', []); // Asignamos un array vacío en caso de error
+        const { data } = await axiosInstance.post('auth/login/', credenciales);
+        commit('SET_TOKEN', data.token);
+        return true;
+      } catch (error) {
+        commit('SET_ERROR', error.response?.data?.message || 'Error de autenticación');
+        return false;
+      }
+    },
+
+    logout({ commit }) {
+      commit('CLEAR_TOKEN');
+      commit('SET_PRODUCTO_ACTUAL', null);
+    },
+
+    // Categorías
+    async cargarCategorias({ commit, state }) {
+      if (state.categorias.length > 0) return; // Cache
+
+      commit('SET_CARGANDO', true);
+      commit('SET_ERROR', null);
+      
+      try {
+        const { data } = await axiosInstance.get('categorias/');
+        commit('SET_CATEGORIAS', data);
+      } catch (error) {
+        commit('SET_ERROR', this._handleError(error));
+        throw error;
+      } finally {
+        commit('SET_CARGANDO', false);
+      }
+    },
+
+    // Productos
+    async cargarProductos({ commit, state }, params = {}) {
+      commit('SET_CARGANDO', true);
+      commit('SET_ERROR', null);
+      
+      try {
+        const { data } = await axiosInstance.get('productos/', { 
+          params: {
+            page: params.page || 1,
+            page_size: params.itemsPerPage || state.paginacion.itemsPerPage,
+            ...params
+          } 
+        });
+
+        commit('SET_PRODUCTOS', data.results || []);
+        commit('SET_PAGINACION', {
+          currentPage: data.current_page || 1,
+          totalPages: data.total_pages || 1,
+          totalItems: data.total_items || data.count || 0
+        });
+
+        // Cache productos
+        if (data.results) {
+          data.results.forEach(producto => {
+            commit('CACHE_PRODUCTO', producto);
+          });
         }
       } catch (error) {
-        console.error('Error al cargar categorías:', error);
-        commit('setCategorias', []); // Asignamos un array vacío en caso de error
+        commit('SET_ERROR', this._handleError(error));
+        throw error;
       } finally {
-        commit('setCargando', false);
+        commit('SET_CARGANDO', false);
       }
     },
-    async cargarProductos({ commit }) {
-      commit('setCargando', true);
-      try {
-      const response = await axiosInstance.get('productos/');
-      console.log('Respuesta de productos:', response.data);
 
-      // Comprobamos si la respuesta tiene la estructura correcta
-      if (response.data && Array.isArray(response.data.productos)) {
-        commit('setProductos', response.data.productos); // Accedemos a la propiedad 'productos' de la respuesta
-      } else {
-        console.error('La respuesta de productos no tiene la estructura esperada:', response.data);
-        commit('setProductos', []); // Asignamos un array vacío si no tiene la estructura esperada
+    async cargarProductoPorId({ commit, state }, productoId) {
+      // Verificar cache primero
+      if (state.productosCache[productoId]) {
+        commit('SET_PRODUCTO_ACTUAL', state.productosCache[productoId]);
+        return;
       }
+    
+      commit('SET_CARGANDO', true);
+      commit('SET_ERROR', null);
+      
+      try {
+        const { data } = await axiosInstance.get(`productos/${productoId}/`);
+        
+        // Asegurar que las URLs de imágenes sean completas
+        const productoConImagenes = {
+          ...data,
+          imagen_url: data.imagen ? construirUrlCompleta(data.imagen) : null,
+          imagenes_adicionales: data.imagenes_adicionales?.map(img => ({
+            ...img,
+            url: construirUrlCompleta(img.url || img.imagen)
+          })) || []
+        };
+        
+        commit('SET_PRODUCTO_ACTUAL', productoConImagenes);
+        commit('CACHE_PRODUCTO', productoConImagenes);
       } catch (error) {
-      console.error('Error al cargar productos:', error);
-      commit('setProductos', []); // Asignamos un array vacío en caso de error
+        commit('SET_ERROR', this._handleError(error));
+        throw error;
       } finally {
-      commit('setCargando', false);
+        commit('SET_CARGANDO', false);
       }
     },
-  },
+
+    async crearProducto({ commit }, productoData) {
+      commit('SET_CARGANDO', true);
+      commit('SET_ERROR', null);
+      
+      try {
+        const formData = crearFormData(productoData);
+        const { data } = await axiosInstance.post('productos/', formData);
+        commit('AGREGAR_PRODUCTO', data);
+        return data;
+      } catch (error) {
+        commit('SET_ERROR', this._handleError(error));
+        throw error;
+      } finally {
+        commit('SET_CARGANDO', false);
+      }
+    },
+
+    async actualizarProducto({ commit }, { id, datos }) {
+      commit('SET_CARGANDO', true);
+      commit('SET_ERROR', null);
+      
+      try {
+        const formData = crearFormData(datos);
+        const { data } = await axiosInstance.patch(`productos/${id}/`, formData);
+        commit('ACTUALIZAR_PRODUCTO', data);
+        return data;
+      } catch (error) {
+        commit('SET_ERROR', this._handleError(error));
+        throw error;
+      } finally {
+        commit('SET_CARGANDO', false);
+      }
+    },
+
+    // Método interno para manejo de errores
+    _handleError(error) {
+      if (error.response) {
+        // Error de la API
+        const { status, data } = error.response;
+        
+        if (status === 401) {
+          this.dispatch('logout');
+          return 'Sesión expirada. Por favor ingrese nuevamente.';
+        }
+        
+        return data.message || data.detail || `Error ${status}: ${data}`;
+      }
+      return error.message || 'Error de conexión';
+    }
+  }
 });

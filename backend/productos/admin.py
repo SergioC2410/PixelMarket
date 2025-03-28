@@ -1,17 +1,13 @@
-from django.test import TestCase
-from .models import Categoria
+from django.contrib import admin
+from .models import Categoria, Producto
 
-class CategoriaModelTest(TestCase):
-    ELECTRONICA = "Electrónica"
+@admin.register(Producto)
+class ProductoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'precio', 'disponible', 'categoria')
+    search_fields = ('nombre', 'descripcion')
+    list_filter = ('categoria', 'fecha_creacion')
 
-    def test_crear_categoria(self):
-        # Crear una categoría
-        categoria = Categoria.objects.create(
-            nombre=self.ELECTRONICA,
-            descripcion="Productos electrónicos"
-        )
-
-        # Verificar que la categoría se haya creado correctamente
-        self.assertEqual(categoria.nombre, self.ELECTRONICA)
-        self.assertEqual(categoria.descripcion, "Productos electrónicos")
-        self.assertEqual(str(categoria), self.ELECTRONICA)  # Verificar el método __str__
+@admin.register(Categoria)
+class CategoriaAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'cantidad_productos')
+    prepopulated_fields = {'slug': ('nombre',)}

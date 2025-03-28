@@ -1,99 +1,85 @@
-# Importamos los módulos necesarios de Django
 from django.db import models
-from django.utils.text import slugify  # Para generar slugs automáticamente
-from django.core.exceptions import ValidationError  # Para validaciones personalizadas
-from django.core.validators import MinValueValidator  # Para validaciones de valores negativos
+from django.utils.text import slugify
+from django.core.validators import MinValueValidator
+from django.core.exceptions import ValidationError
+from django.urls import reverse
 
-# Definimos el modelo Categoria para representar las categorías de productos
 class Categoria(models.Model):
     """
-    Modelo para representar las categorías de productos.
-    Cada categoría tiene un nombre único y una descripción opcional.
+    Modelo para categorías de productos con slug automático y relación inversa a productos.
     """
-    # Campo para el nombre de la categoría (único)
-    nombre = models.CharField(max_length=100, unique=True)
+    nombre = models.CharField(max_length=100, unique=True, verbose_name="Nombre de categoría")
+    descripcion = models.TextField(blank=True, verbose_name="Descripción")
+    slug = models.SlugField(unique=True, blank=True, max_length=110)
 
-    # Campo para la descripción de la categoría (opcional)
-    descripcion = models.TextField(blank=True)
-
-    # Campo para el slug (URL amigable) de la categoría
-    slug = models.SlugField(unique=True, blank=True)
+    class Meta:
+        verbose_name = "Categoría"
+        verbose_name_plural = "Categorías"
+        ordering = ['nombre']
 
     def save(self, *args, **kwargs):
-        """
-        Método para guardar la categoría.
-        Si no se proporciona un slug, se genera automáticamente a partir del nombre.
-        """
         if not self.slug:
-            self.slug = slugify(self.nombre)  # Genera el slug automáticamente si no se proporciona
+            self.slug = slugify(self.nombre)
         super().save(*args, **kwargs)
 
+    @property
     def cantidad_productos(self):
-        """
-        Método para obtener la cantidad de productos asociados a esta categoría.
-        Utiliza el related_name 'productos' para acceder a los productos desde la categoría.
-        """
         return self.productos.count()
 
+    def get_absolute_url(self):
+        return reverse('categoria-detail', kwargs={'pk': self.pk})
+
     def __str__(self):
-        """
-        Representación en cadena de la categoría.
-        Aparece como el nombre de la categoría en el panel de administración de Django.
-        """
-        return str(self.nombre)
+        return self.nombre
 
-
-# Definimos el modelo Producto para representar los productos en la tienda
 class Producto(models.Model):
     """
-    Modelo para representar los productos.
-    Cada producto está asociado a una categoría y tiene varios atributos como precio, stock y fecha de creación.
+    Modelo principal para productos con validaciones integradas y manejo de imágenes.
     """
-    # Campo para el nombre del producto
-    nombre = models.CharField(max_length=255, unique=True)
-
-    # Campo para la descripción del producto (opcional, con valor por defecto)
-    descripcion = models.TextField(default='Sin descripción')  # Valor por defecto añadido
-
-    # Campo para el precio del producto (con validación para que no sea negativo)
-    precio = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
-
-    # Campo para la categoría del producto (clave foránea)
+    nombre = models.CharField(max_length=255, unique=True, verbose_name="Nombre del producto")
+    descripcion = models.TextField(blank=True, default='Sin descripción', verbose_name="Descripción")
+    precio = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)],  # Precio mínimo de 0.01
+        verbose_name="Precio unitario"
+    )
     categoria = models.ForeignKey(
-        Categoria,  # Relacionamos el producto con una categoría
-        on_delete=models.CASCADE,  # Si se elimina la categoría, se eliminan sus productos
-        related_name='productos'  # Permite acceder a los productos desde una categoría
+        Categoria,
+        on_delete=models.CASCADE,
+        related_name='productos',
+        verbose_name="Categoría asociada"
+    )
+    stock = models.PositiveIntegerField(default=0, verbose_name="Unidades disponibles")
+    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de creación")
+    fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name="Última actualización")
+    imagen = models.ImageField(
+        upload_to='productos/%Y/%m/%d/',
+        blank=True,
+        null=True,
+        verbose_name="Imagen del producto"
     )
 
-    # Campo para el stock del producto (entero positivo)
-    stock = models.PositiveIntegerField(default=0)
-
-    # Campo para la fecha de creación del producto (se asigna automáticamente)
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-
-    # Campo para la imagen del producto
-    imagen = models.ImageField(upload_to='productos/', null=True, blank=True)
+    class Meta:
+        verbose_name = "Producto"
+        verbose_name_plural = "Productos"
+        ordering = ['-fecha_creacion']
+        indexes = [
+            models.Index(fields=['nombre'], name='producto_nombre_idx'),
+            models.Index(fields=['categoria'], name='producto_categoria_idx'),
+        ]
 
     def clean(self):
-        """
-        Método de validación personalizado que se ejecuta antes de guardar el producto.
-        Verifica que el precio y el stock no sean negativos.
-        """
-        if self.precio < 0:
-            raise ValidationError({'precio': 'El precio no puede ser negativo.'})
+        """Validación adicional para stock negativo (aunque PositiveIntegerField lo previene)"""
         if self.stock < 0:
             raise ValidationError({'stock': 'El stock no puede ser negativo.'})
 
+    @property
     def disponible(self):
-        """
-        Método que verifica si el producto está disponible (stock > 0).
-        Retorna True si el stock es mayor que cero, de lo contrario False.
-        """
         return self.stock > 0
 
+    def get_absolute_url(self):
+        return reverse('producto-detail', kwargs={'pk': self.pk})
+
     def __str__(self):
-        """
-        Representación en cadena del producto.
-        Aparece como el nombre del producto en el panel de administración de Django.
-        """
-        return str(self.nombre)
+        return f"{self.nombre} (${self.precio})"

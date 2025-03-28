@@ -33,6 +33,12 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',  # Solo permite respuestas en formato JSON
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.MultiPartParser',
+    ],
 }
 
 
@@ -45,6 +51,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'django_filters',
     
     # Aplicaciones de terceros
     'corsheaders',  # Debe estar antes de las apps locales
@@ -110,7 +118,9 @@ DATABASES = {
         'PORT': '3306',  # Puerto para conectar con la base de datos
     }
 }
-
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8080",  # O el puerto de tu frontend
+]
 
 # --- Validación de Contraseñas ---
 

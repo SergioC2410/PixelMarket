@@ -1,22 +1,64 @@
 <template>
   <div class="container mt-5">
-    <h2 class="mb-4">Explorar Categorías</h2>
-    <div class="row row-cols-1 row-cols-md-3 g-4">
+    <!-- Breadcrumbs -->
+    <b-breadcrumb :items="breadcrumbs" class="mb-4"></b-breadcrumb>
+
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2>Explorar Categorías</h2>
+      <b-badge variant="primary" pill>{{ totalCategorias }} categorías</b-badge>
+    </div>
+
+    <!-- Estado de carga -->
+    <div v-if="cargando" class="text-center py-5">
+      <b-spinner variant="primary" label="Cargando..."></b-spinner>
+      <p>Cargando categorías...</p>
+    </div>
+
+    <!-- Error -->
+    <div v-else-if="error" class="alert alert-danger">
+      {{ error }}
+      <b-button @click="recargarDatos" variant="outline-danger" class="ms-3">
+        <i class="fas fa-sync"></i> Reintentar
+      </b-button>
+    </div>
+
+    <!-- Listado de categorías -->
+    <div v-else class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
       <div 
-        class="col" 
-        v-for="categoria in categorias" 
-        :key="categoria.id"
+        v-for="categoria in categoriasConConteo" 
+        :key="categoria.id" 
+        class="col"
       >
         <router-link 
-          :to="{ name: 'Productos', query: { categoria: categoria.nombre.toLowerCase() } }"
+          :to="{ 
+            name: 'Productos', 
+            query: { categoria: categoria.id } 
+          }" 
           class="text-decoration-none"
         >
-          <div class="card h-100 shadow-hover cursor-pointer">
-            <div class="card-body text-center">
-              <h3 class="card-title">{{ categoria.nombre }}</h3>
-              <small class="text-muted">{{ categoria.productos }} productos disponibles</small>
-            </div>
-          </div>
+          <b-card
+            class="h-100 hover-effect"
+            :img-src="categoria.imagen_url || placeholderImage"
+            img-top
+          >
+            <template #header>
+              <h5 class="mb-0 text-center">{{ categoria.nombre }}</h5>
+            </template>
+
+            <b-card-body class="text-center">
+              <p class="text-muted small">{{ categoria.descripcion }}</p>
+              <b-badge variant="success" pill>
+                {{ categoria.conteoProductos }} productos
+              </b-badge>
+            </b-card-body>
+
+            <template #footer>
+              <small class="text-muted">
+                Última actualización: {{ formatFecha(categoria.updated_at) }}
+              </small>
+            </template>
+          </b-card>
         </router-link>
       </div>
     </div>
@@ -24,35 +66,97 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from 'vuex';
+import { mapActions, mapGetters, mapState } from 'vuex'
 
 export default {
   name: 'CategoriasView',
+  data() {
+    return {
+      placeholderImage: 'https://via.placeholder.com/400x200.png?text=Categoría+Sin+Imagen',
+      breadcrumbs: [
+        { text: 'Inicio', to: '/' },
+        { text: 'Categorías', active: true }
+      ]
+    }
+  },
   computed: {
-    ...mapGetters(['categorias']) // Acceder a las categorías desde Vuex
+    ...mapGetters(['todasCategorias', 'productosPorCategoria']),
+    ...mapState(['estaCargando', 'error']),
+    
+    cargando() {
+      return this.estaCargando
+    },
+    
+    totalCategorias() {
+      return this.todasCategorias.length
+    },
+    
+    categoriasConConteo() {
+      return this.todasCategorias.map(categoria => ({
+        ...categoria,
+        conteoProductos: this.productosPorCategoria(categoria.id).length,
+        updated_at: categoria.fecha_actualizacion || new Date().toISOString()
+      }))
+    }
   },
   methods: {
-    ...mapActions(['cargarCategorias']) // Llamar la acción de Vuex
+    ...mapActions(['cargarCategorias', 'cargarProductos']),
+    
+    formatFecha(fecha) {
+      return new Date(fecha).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    },
+    
+    async recargarDatos() {
+      try {
+        await Promise.all([
+          this.cargarCategorias(),
+          this.cargarProductos()
+        ])
+      } catch (error) {
+        console.error('Error recargando datos:', error)
+      }
+    }
   },
-  mounted() {
-    this.cargarCategorias(); // Cargar las categorías al montar el componente
+  async mounted() {
+    if (this.todasCategorias.length === 0) {
+      await this.recargarDatos()
+    }
   }
-};
+}
 </script>
 
 <style scoped>
-.cursor-pointer {
+.hover-effect {
+  transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
-  transition: transform 0.2s;
 }
 
-.shadow-hover:hover {
+.hover-effect:hover {
   transform: translateY(-5px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.card-img-top {
+  height: 200px;
+  object-fit: cover;
 }
 
 .text-decoration-none {
-  text-decoration: none;
   color: inherit;
+}
+
+.text-decoration-none:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
 }
 </style>
