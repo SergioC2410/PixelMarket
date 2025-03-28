@@ -7,6 +7,7 @@ import CheckoutView from '@/views/Checkout/CheckoutView.vue';
 import Register from '@/views/Auth/Register.vue';
 import Contraseña from '@/views/Auth/Contraseña.vue'
 import SearchResults from '@/components/SearchResults.vue';
+import SearchBar from '@/components/SearchBar.vue';
 import { createApp } from 'vue';
 import App from '@/App.vue';
 
@@ -45,6 +46,12 @@ const routes = [
   path: '/search/:query',
   name: 'search',
   component: SearchResults,
+  props: true
+},
+  {
+  path: '/search/:query',
+  name: 'searchbar',
+  component: SearchBar,
   props: true
 }
 ];
