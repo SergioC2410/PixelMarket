@@ -14,16 +14,12 @@ class UsuarioSerializer(serializers.ModelSerializer):
             'password': {'write_only': True},  # La contraseña no se incluye en las respuestas
             'cedula': {'required': True},  # La cédula es obligatoria
         }
+        
+    def validate(self, data):
+        usuario = Usuario(**data)
+        usuario.full_clean()  # Ejecuta las validaciones del modelo
+        return data    
 
-    def validate_email(self, value):
-        """
-        Valida que el correo electrónico tenga un formato válido.
-        """
-        try:
-            validate_email(value)  # Valida el formato del correo electrónico
-        except ValidationError:
-            raise serializers.ValidationError("Correo electrónico inválido")  # Lanza un error de validación si el formato es incorrecto
-        return value  # Devuelve el valor del correo electrónico si es válido
 
     def create(self, validated_data):
         """
@@ -35,7 +31,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             telefono=validated_data.get('telefono', None),  # Obtiene el teléfono del diccionario validado, por defecto None
             direccion=validated_data.get('direccion', None),  # Obtiene la dirección del diccionario validado, por defecto None
-            cedula=validated_data.get('cedula', '00000000')  # Obtiene la cédula del diccionario validado, por defecto '00000000'
+            cedula=validated_data.get('cedula')  # Obtiene la cédula del diccionario validado, por defecto '00000000'
         )
         return usuario  # Devuelve la instancia del usuario creado
 
