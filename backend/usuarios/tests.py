@@ -10,7 +10,6 @@ class UsuarioModelTest(TestCase):
             'password': 'testpassword123',
             'email': 'testuser@example.com',
             'telefono': '12345678',
-            'direccion': '123 Test St',
         }
 
     def test_crear_usuario(self):
@@ -20,7 +19,6 @@ class UsuarioModelTest(TestCase):
             email=self.usuario_data['email'],
             password=self.usuario_data['password'],
             telefono=self.usuario_data['telefono'],
-            direccion=self.usuario_data['direccion']
         )
         usuario.save()
 
@@ -29,7 +27,6 @@ class UsuarioModelTest(TestCase):
         self.assertEqual(usuario.username, self.usuario_data['username'])
         self.assertEqual(usuario.email, self.usuario_data['email'])
         self.assertEqual(usuario.telefono, self.usuario_data['telefono'])
-        self.assertEqual(usuario.direccion, self.usuario_data['direccion'])
 
     def test_validacion_telefono(self):
         # Prueba para verificar la validación del campo 'telefono'

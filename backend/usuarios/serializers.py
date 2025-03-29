@@ -9,7 +9,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Usuario  # Especifica el modelo que se va a serializar
-        fields = ['id', 'username', 'email', 'telefono', 'direccion', 'cedula', 'fecha_registro']  # Campos que se incluirán en la serialización
+        fields = ['id', 'username', 'email', 'telefono', 'cedula', 'fecha_registro']  # Campos que se incluirán en la serialización
         extra_kwargs = {
             'password': {'write_only': True},  # La contraseña no se incluye en las respuestas
             'cedula': {'required': True},  # La cédula es obligatoria
@@ -30,8 +30,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             email=validated_data['email'],
             password=validated_data['password'],
             telefono=validated_data.get('telefono', None),  # Obtiene el teléfono del diccionario validado, por defecto None
-            direccion=validated_data.get('direccion', None),  # Obtiene la dirección del diccionario validado, por defecto None
-            cedula=validated_data.get('cedula')  # Obtiene la cédula del diccionario validado, por defecto '00000000'
+            cedula=validated_data.get('cedula') 
         )
         return usuario  # Devuelve la instancia del usuario creado
 
@@ -43,7 +42,6 @@ class UsuarioSerializer(serializers.ModelSerializer):
         instance.username = validated_data.get('username', instance.username)  # Actualiza el nombre de usuario si está presente en los datos validados
         instance.email = validated_data.get('email', instance.email)  # Actualiza el correo electrónico si está presente en los datos validados
         instance.telefono = validated_data.get('telefono', instance.telefono)  # Actualiza el teléfono si está presente en los datos validados
-        instance.direccion = validated_data.get('direccion', instance.direccion)  # Actualiza la dirección si está presente en los datos validados
         instance.cedula = validated_data.get('cedula', instance.cedula)  # Actualiza la cédula si está presente en los datos validados
         instance.save()  # Guarda los cambios en la instancia del usuario
         return instance  # Devuelve la instancia del usuario actualizada

@@ -19,6 +19,8 @@ class Usuario(AbstractUser):
     Extiende el modelo de usuario predeterminado de Django con campos adicionales
     y funcionalidades específicas para el proyecto.
     """
+    username = None
+    
     # Campos adicionales
     telefono = PhoneNumberField(
         region='VE',  # Ajusta la región según tu país
@@ -28,11 +30,7 @@ class Usuario(AbstractUser):
         verbose_name='Número de teléfono',
         help_text='Ej. +58 212 1235678'  # Mensaje de ayuda para el usuario
     )
-    direccion = models.TextField(
-        blank=True,  # El campo es opcional
-        null=True,   # Puede ser NULL en la base de datos
-        verbose_name='Dirección del usuario'
-    )
+
     email = models.EmailField(
         unique=True,  # El email debe ser único en la base de datos
         blank=False,  # El campo es obligatorio
