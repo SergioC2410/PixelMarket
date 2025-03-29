@@ -81,7 +81,7 @@
             id="phone"
             v-model.trim="phone"
             required
-            placeholder="+57 300 123 4567"
+            placeholder="+58 123 456 78 90"
             class="animated-input"
             @input="validatePhone"
           >
@@ -190,7 +190,8 @@
                 <svg class="requirement-icon" viewBox="0 0 24 24">
                   <path 
                     fill="currentColor" 
-                    :d="req.valid ? 'M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z' : 'M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22C17.53,22 22,17.53 22,12C22,6.47 17.53,2 12,2Z'" 
+                    :d="req.valid ? 'M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z' 
+                    : 'M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22C17.53,22 22,17.53 22,12C22,6.47 17.53,2 12,2Z'" 
                   />
                 </svg>
                 {{ req.text }}
@@ -216,7 +217,8 @@
         <transition name="slide-fade">
           <div v-if="errorMessage" class="error-message">
             <svg class="error-icon" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z" />
+              <path fill="currentColor" 
+              d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z" />
             </svg>
             {{ errorMessage }}
           </div>
