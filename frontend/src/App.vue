@@ -79,9 +79,9 @@ export default {
 }
 
 .logo-large {
-  height: 90px; /* Aumentado de 80px a 90px */
+  height: 135px; /* Aumentado de 80px a 90px */
   width: auto;
-  max-width: 350px; /* Aumentado de 300px a 350px */
+  max-width: 400px; /* Aumentado de 300px a 350px */
   object-fit: contain;
   transition: all var(--transition-speed) ease;
   object-position: left center; /* Asegura que el texto del logo esté bien alineado */

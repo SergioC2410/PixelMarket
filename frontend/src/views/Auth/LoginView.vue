@@ -1,27 +1,36 @@
 <template>
-  <!-- Fondo interactivo -->
-  <div class="interactive-background">
-    <!-- Partículas animadas -->
-    <div class="particles">
-      <div v-for="(particle, index) in particles" :key="index" class="particle" 
-           :style="{
-             left: particle.x + 'px',
-             top: particle.y + 'px',
-             width: particle.size + 'px',
-             height: particle.size + 'px',
-             backgroundColor: particle.color,
-             opacity: particle.opacity
-           }"></div>
-    </div>
-    
-    <!-- Olas animadas -->
-    <div class="waves">
-      <div class="wave wave-1"></div>
-      <div class="wave wave-2"></div>
-      <div class="wave wave-3"></div>
-    </div>
+  <!-- Fondo interactivo para ecommerce -->
+  <div class="ecommerce-background">
   </div>
-
+    <!-- Productos flotantes -->
+    <div class="floating-products">
+      <div v-for="(product, index) in floatingProducts" :key="index" class="floating-product" 
+           :style="{
+             left: product.x + 'px',
+             top: product.y + 'px',
+             width: product.size + 'px',
+             height: product.size + 'px',
+             transform: 'rotate(' + product.rotation + 'deg)',
+             backgroundImage: 'url(' + product.image + ')',
+             filter: 'drop-shadow(0 5px 15px ' + product.shadow + ')'
+           }"></div>
+  </div>
+    
+    <!-- Efecto de burbujas de descuento -->
+    <div class="discount-bubbles">
+      <div v-for="(bubble, index) in discountBubbles" :key="index" class="bubble" 
+           :style="{
+             left: bubble.x + 'px',
+             top: bubble.y + 'px',
+             width: bubble.size + 'px',
+             height: bubble.size + 'px',
+             backgroundColor: bubble.color,
+             opacity: bubble.opacity,
+             animationDelay: bubble.delay + 's'
+           }">
+        <span>{{ bubble.text }}</span>
+      </div>
+    </div>
   <!-- Contenedor del login centrado arriba -->
   <div class="login-wrapper">
     <div class="login-container" :class="{ 'shake': hasError }">
@@ -108,151 +117,178 @@
 </template>
 
 <script>
-const MOCK_USERS = [
-  {
-    email: "mauro123@.com",
-    password: "123",
-    name: "Usuario Demo",
-    token: "fake-jwt-token-123"
-  }
-];
-
 export default {
   name: 'LoginView',
   data() {
     return {
-      email: '',
-      password: '',
-      isLoading: false,
-      errorMessage: '',
-      hasError: false,
-      particles: Array(30).fill().map(() => ({
+      // ... tus datos existentes ...
+      floatingProducts: Array(8).fill().map((_, i) => ({
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
-        size: Math.random() * 5 + 3,
-        color: `hsl(${Math.random() * 60 + 200}, 70%, 60%)`,
-        opacity: Math.random() * 0.5 + 0.2,
-        speed: Math.random() * 0.5 + 0.2
+        size: Math.random() * 80 + 40,
+        rotation: Math.random() * 360,
+        speed: Math.random() * 0.3 + 0.2,
+        image: this.getRandomProductImage(i),
+        shadow: `rgba(4, 127, 250, ${Math.random() * 0.3 + 0.2})`
+      })),
+      discountBubbles: Array(5).fill().map(() => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        size: Math.random() * 60 + 40,
+        color: `hsl(${Math.random() * 60 + 190}, 70%, 60%)`,
+        opacity: Math.random() * 0.4 + 0.2,
+        speed: Math.random() * 0.5 + 0.3,
+        delay: Math.random() * 5,
+        text: this.getRandomDiscountText()
       }))
     };
   },
-  mounted() {
-    this.animateParticles();
-    window.addEventListener('resize', this.resetParticles);
-  },
-  beforeUnmount() {
-    window.removeEventListener('resize', this.resetParticles);
-    cancelAnimationFrame(this.animationFrame);
-  },
   methods: {
-    animateParticles() {
-      this.particles.forEach(particle => {
-        particle.y += particle.speed;
-        if (particle.y > window.innerHeight) {
-          particle.y = -10;
-          particle.x = Math.random() * window.innerWidth;
+    getRandomProductImage(index) {
+      const products = [
+        'https://cdn-icons-png.flaticon.com/512/3144/3144456.png', // smartphone
+        'https://cdn-icons-png.flaticon.com/512/3659/3659898.png', // laptop
+        'https://cdn-icons-png.flaticon.com/512/3081/3081985.png', // headphones
+        'https://cdn-icons-png.flaticon.com/512/2933/2933245.png', // t-shirt
+        'https://cdn-icons-png.flaticon.com/512/994/994928.png', // watch
+        'https://cdn-icons-png.flaticon.com/512/869/869869.png', // shoes
+        'https://cdn-icons-png.flaticon.com/512/2753/2753583.png', // camera
+        'https://cdn-icons-png.flaticon.com/512/2936/2936886.png' // bag
+      ];
+      return products[index % products.length];
+    },
+    getRandomDiscountText() {
+      const discounts = ['-20%', 'Oferta', 'Nuevo', '¡Compra ya!', 'Envío gratis', '2x1'];
+      return discounts[Math.floor(Math.random() * discounts.length)];
+    },
+    animateFloatingProducts() {
+      this.floatingProducts.forEach(product => {
+        product.y += product.speed;
+        product.rotation += 0.2;
+        
+        if (product.y > window.innerHeight) {
+          product.y = -100;
+          product.x = Math.random() * window.innerWidth;
         }
       });
       
-      this.animationFrame = requestAnimationFrame(this.animateParticles);
-    },
-    resetParticles() {
-      this.particles = this.particles.map(particle => ({
-        ...particle,
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * window.innerHeight
-      }));
-    },
-    validateForm() {
-      if (!this.email || !this.password) {
-        this.errorMessage = 'Todos los campos son obligatorios';
-        this.hasError = true;
-        return false;
-      }
-      
-      if (!this.validEmail(this.email)) {
-        this.errorMessage = 'Formato de email inválido';
-        this.hasError = true;
-        return false;
-      }
-      
-      this.hasError = false;
-      return true;
-    },
-    
-    validEmail(email) {
-      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return re.test(email);
-    },
-    
-    clearError() {
-      this.errorMessage = '';
-      this.hasError = false;
-    },
-    
-    mockAuthService() {
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          const user = MOCK_USERS.find(u => 
-            u.email === this.email.toLowerCase() && 
-            u.password === this.password
-          );
-          
-          user ? resolve(user) : reject('Credenciales incorrectas');
-        }, 1500);
+      this.discountBubbles.forEach(bubble => {
+        bubble.y -= bubble.speed;
+        if (bubble.y < -50) {
+          bubble.y = window.innerHeight + 50;
+          bubble.x = Math.random() * window.innerWidth;
+        }
       });
+      
+      this.animationFrame = requestAnimationFrame(this.animateFloatingProducts);
     },
-    
-    handleSubmit() {
-      if (this.validateForm()) {
-        this.isLoading = true;
-        
-        this.mockAuthService()
-          .then(user => {
-            console.log('Inicio de sesión exitoso:', user);
-            
-            this.$swal({
-              title: 'Inicio de sesión exitoso',
-              text: `Bienvenido, ${user.name}!`,
-              icon: 'success',
-              confirmButtonColor: '#047ffa',
-              showClass: {
-                popup: 'animate__animated animate__fadeInDown'
-              },
-              hideClass: {
-                popup: 'animate__animated animate__fadeOutUp'
-              }
-            }).then(() => {
-              this.$router.push('/main');
-            });
-            
-            this.errorMessage = '';
-          })
-          .catch(error => {
-            console.error('Error al iniciar sesión:', error);
-            this.errorMessage = error;
-            this.hasError = true;
-            
-            this.$swal({
-              title: 'Error al iniciar sesión',
-              text: error,
-              icon: 'error',
-              confirmButtonColor: '#e74c3c',
-              showClass: {
-                popup: 'animate__animated animate__headShake'
-              }
-            });
-          })
-          .finally(() => {
-            this.isLoading = false;
-          });
-      }
-    }
+    // ... tus otros métodos ...
+  },
+  mounted() {
+    this.animateFloatingProducts();
+    window.addEventListener('resize', this.resetPositions);
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.resetPositions);
+    cancelAnimationFrame(this.animationFrame);
   }
 };
 </script>
 
 <style scoped>
+/* Fondo para ecommerce */
+.ecommerce-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+  z-index: -1;
+  overflow: hidden;
+}
+
+.floating-products {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.floating-product {
+  position: absolute;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.8;
+  transition: transform 0.5s ease;
+  will-change: transform;
+}
+
+.floating-product:hover {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.discount-bubbles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 0.8em;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  animation: float-up 15s infinite linear;
+  cursor: pointer;
+}
+
+.bubble:hover {
+  animation-play-state: paused;
+  transform: scale(1.2);
+}
+
+@keyframes float-up {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-100vh); }
+}
+
+.brand-waves {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100px;
+  overflow: hidden;
+}
+
+.wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background-repeat: repeat no-repeat;
+  background-position: 0 bottom;
+  background-size: 50% 100px;
+}
+
+.wave-1 {
+  animation: wave 15s linear infinite;
+  opacity: 0.7;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='%23047ffa'%3E%3C/path%3E%3C/svg%3E");
+}
+
+.wave-2 {
+  animation: wave 10s linear infinite reverse;
+  opacity: 0.4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='%23047ffa'%3E%3C/path%3E%3C/svg%3E");
+}
 /* Variables CSS actualizadas */
 :root {
   --color-primary: #047ffa;
@@ -319,19 +355,19 @@ export default {
 .wave-1 {
   animation: wave 15s linear infinite;
   opacity: 0.5;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='%234da8ff'%3E%3C/path%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSptjkIYENr9nXb1TL75tt73rsTjeLLZzCSLA&s' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='%234da8ff'%3E%3C/path%3E%3C/svg%3E");
 }
 
 .wave-2 {
   animation: wave 10s linear infinite reverse;
   opacity: 0.3;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='%234da8ff'%3E%3C/path%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSptjkIYENr9nXb1TL75tt73rsTjeLLZzCSLA&s' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='%234da8ff'%3E%3C/path%3E%3C/svg%3E");
 }
 
 .wave-3 {
   animation: wave 5s linear infinite;
   opacity: 0.1;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='%234da8ff'%3E%3C/path%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSptjkIYENr9nXb1TL75tt73rsTjeLLZzCSLA&s' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='%234da8ff'%3E%3C/path%3E%3C/svg%3E");
 }
 
 @keyframes wave {
@@ -384,8 +420,8 @@ export default {
 }
 
 .logo {
-  width: 320px;
-  height: 388px;
+  width: 100px;
+  height: 100px;
   margin-bottom: -10rem;
   margin-top: -10rem;
 }
