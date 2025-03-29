@@ -45,7 +45,6 @@ class Usuario(AbstractUser):
         unique=True,    # La cédula debe ser única en la base de datos
         blank=False,    # El campo es obligatorio
         null=False,     # No puede ser NULL en la base de datos
-        default='00000000',  # Valor predeterminado
         verbose_name='Cédula',
         help_text='Ingrese su número de cédula (solo números).'  # Mensaje de ayuda
     )
