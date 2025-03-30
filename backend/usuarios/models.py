@@ -2,7 +2,7 @@
 # AbstractUser: Clase base para crear un modelo de usuario personalizado.
 # Group: Modelo que representa un grupo de usuarios.
 # Permission: Modelo que representa un permisos específico.
-from django.contrib.auth.models import AbstractUser, Group, Permission
+from django.contrib.auth.models import AbstractUser, Group, Permission, BaseUserManager
 # models: Proporciona clases base para definir modelos de datos en Django.
 from django.db import models
 # ValidationError: Excepción que se lanza cuando una validación falla.
@@ -12,6 +12,22 @@ from django.core.validators import validate_email
 # PhoneNumberField: campo para la validacion de los numeros telefonicos
 from phonenumber_field.modelfields import PhoneNumberField
 
+class UsuarioManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('El email es obligatorio')
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(email, password, **extra_fields)
+
+
 # Definición del modelo de usuario personalizado
 class Usuario(AbstractUser):
     """
@@ -19,6 +35,19 @@ class Usuario(AbstractUser):
     Extiende el modelo de usuario predeterminado de Django con campos adicionales
     y funcionalidades específicas para el proyecto.
     """
+    username = None
+    
+    email = models.EmailField(
+        unique=True,  # El email debe ser único en la base de datos
+        blank=False,  # El campo es obligatorio
+        null=False,   # No puede ser NULL en la base de datos
+        verbose_name='Correo electrónico'
+    )
+    
+    # Configuración para usar email como identificador
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []  # No se necesitan campos adicionales para crear un superusuario
+    objects = UsuarioManager()
     # Campos adicionales
     telefono = PhoneNumberField(
         region='VE',  # Ajusta la región según tu país
@@ -28,24 +57,13 @@ class Usuario(AbstractUser):
         verbose_name='Número de teléfono',
         help_text='Ej. +58 212 1235678'  # Mensaje de ayuda para el usuario
     )
-    direccion = models.TextField(
-        blank=True,  # El campo es opcional
-        null=True,   # Puede ser NULL en la base de datos
-        verbose_name='Dirección del usuario'
-    )
-    email = models.EmailField(
-        unique=True,  # El email debe ser único en la base de datos
-        blank=False,  # El campo es obligatorio
-        null=False,   # No puede ser NULL en la base de datos
-        verbose_name='Correo electrónico'
-    )
-    
+
+
     cedula = models.CharField(
         max_length=20,  # Ajusta la longitud según el formato de cédula en tu país
         unique=True,    # La cédula debe ser única en la base de datos
         blank=False,    # El campo es obligatorio
         null=False,     # No puede ser NULL en la base de datos
-        default='00000000',  # Valor predeterminado
         verbose_name='Cédula',
         help_text='Ingrese su número de cédula (solo números).'  # Mensaje de ayuda
     )
@@ -73,14 +91,17 @@ class Usuario(AbstractUser):
         help_text='Permisos específicos para este usuario.',
         verbose_name='permisos de usuario'
     )
+    first_name = models.CharField(max_length=15, blank=False)
+    last_name = models.CharField(max_length=15, blank=False)
+    
 
     # Método para representar el usuario como una cadena (aparece en el panel de administración)
     def __str__(self):
         """
-        Representación en cadena del usuario.
-        Devuelve el nombre de usuario (username).
+
+        Representación en cadena del usuario (ahora usando email).
         """
-        return self.username
+        return self.email
 
     # Método para obtener el nombre completo del usuario
     def nombre_completo(self):

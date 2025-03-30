@@ -1,57 +1,100 @@
-from rest_framework import serializers  # Importa el módulo de serializadores de Django REST Framework
-from .models import Usuario  # Importa el modelo Usuario definido en models.py
-from django.core.exceptions import ValidationError  # Importa la excepción ValidationError para manejar errores de validación
-from django.core.validators import validate_email  # Importa la función validate_email para validar el formato de un correo electrónico
+from rest_framework import serializers
+from .models import Usuario
+from django.contrib.auth.password_validation import validate_password
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
-class UsuarioSerializer(serializers.ModelSerializer):
-    """
-    Serializador para el modelo Usuario.
-    """
+# Serializador base para manejar datos generales del modelo Usuario
+class UsuarioBaseSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Usuario  # Especifica el modelo que se va a serializar
-        fields = ['id', 'username', 'email', 'telefono', 'direccion', 'cedula', 'fecha_registro']  # Campos que se incluirán en la serialización
+        model = Usuario
+        # Campos que se incluirán en la serialización
+        fields = ['id', 'email', 'first_name', 'last_name', 'telefono', 'cedula', 'fecha_registro']
+        # Campos de solo lectura
+        read_only_fields = ['fecha_registro']
+
+# Serializador para el registro de nuevos usuarios
+class UsuarioRegistroSerializer(serializers.ModelSerializer):
+    # Campo para la contraseña, con validación y estilo de entrada
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'},
+        validators=[validate_password]
+    )
+    # Campo para confirmar la contraseña
+    password2 = serializers.CharField(
+        write_only=True,
+        required=True,
+        style={'input_type': 'password'},
+        label="Confirmar contraseña"
+    )
+
+    class Meta:
+        model = Usuario
+        # Campos requeridos para el registro
+        fields = ['email', 'password', 'password2', 'telefono', 'cedula', 'first_name', 'last_name']
+        # Configuración adicional para campos específicos
         extra_kwargs = {
-            'password': {'write_only': True},  # La contraseña no se incluye en las respuestas
-            'cedula': {'required': True},  # La cédula es obligatoria
+            'cedula': {'required': True},
+            'first_name': {'required': True},
+            'last_name': {'required': True},
         }
 
-    def validate_email(self, value):
-        """
-        Valida que el correo electrónico tenga un formato válido.
-        """
+    # Validaciones personalizadas
+    def validate(self, data):
+        # Validar que las contraseñas coincidan
+        if data['password'] != data['password2']:
+            raise serializers.ValidationError(
+                {"password2": "Las contraseñas no coinciden."},
+                code='password_mismatch'
+            )
+
+        # Validar que el correo electrónico sea válido
         try:
-            validate_email(value)  # Valida el formato del correo electrónico
+            validate_email(data['email'])
         except ValidationError:
-            raise serializers.ValidationError("Correo electrónico inválido")  # Lanza un error de validación si el formato es incorrecto
-        return value  # Devuelve el valor del correo electrónico si es válido
+            raise serializers.ValidationError(
+                {"email": "Ingrese un correo electrónico válido."},
+                code='invalid_email'
+            )
 
+        # Validar que la cédula contenga solo números
+        cedula = data.get('cedula', '')
+        if not cedula.isdigit():
+            raise serializers.ValidationError(
+                {"cedula": "La cédula debe contener solo números."},
+                code='invalid_cedula'
+            )
+        # Validar la longitud de la cédula
+        if len(cedula) < 7 or len(cedula) > 20:
+            raise serializers.ValidationError(
+                {"cedula": "La cédula debe tener entre 7 y 20 dígitos."},
+                code='invalid_cedula_length'
+            )
+
+        # Eliminar el campo password2 antes de devolver los datos validados
+        data.pop('password2', None)
+        return data
+
+    # Método para crear un nuevo usuario
     def create(self, validated_data):
-        """
-        Crea un nuevo usuario con los datos validados.
-        """
+        # Extraer y eliminar la contraseña de los datos validados
+        password = validated_data.pop('password')
+        validated_data.pop('password2', None)  # Asegurarse de que password2 no esté presente
+
+        # Crear el usuario utilizando el método create_user del modelo Usuario
         usuario = Usuario.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            password=validated_data['password'],
-            telefono=validated_data.get('telefono', None),  # Obtiene el teléfono del diccionario validado, por defecto None
-            direccion=validated_data.get('direccion', None),  # Obtiene la dirección del diccionario validado, por defecto None
-            cedula=validated_data.get('cedula', '00000000')  # Obtiene la cédula del diccionario validado, por defecto '00000000'
+            password=password,
+            **validated_data
         )
-        return usuario  # Devuelve la instancia del usuario creado
+        return usuario
 
-    def update(self, instance, validated_data):
-        """
-        Actualiza un usuario existente con los datos validados.
-        Permite la actualización parcial (PATCH).
-        """
-        instance.username = validated_data.get('username', instance.username)  # Actualiza el nombre de usuario si está presente en los datos validados
-        instance.email = validated_data.get('email', instance.email)  # Actualiza el correo electrónico si está presente en los datos validados
-        instance.telefono = validated_data.get('telefono', instance.telefono)  # Actualiza el teléfono si está presente en los datos validados
-        instance.direccion = validated_data.get('direccion', instance.direccion)  # Actualiza la dirección si está presente en los datos validados
-        instance.cedula = validated_data.get('cedula', instance.cedula)  # Actualiza la cédula si está presente en los datos validados
-        instance.save()  # Guarda los cambios en la instancia del usuario
-        return instance  # Devuelve la instancia del usuario actualizada
-
-# Mejoras sugeridas:
-# 1. Agregar validaciones personalizadas (ej: formato de correo).
-# 2. Implementar serializadores para actualización parcial (PATCH).
+# Serializador para actualizar datos de un usuario existente
+class UsuarioActualizacionSerializer(UsuarioBaseSerializer):
+    class Meta(UsuarioBaseSerializer.Meta):
+        # Configuración adicional para campos de solo lectura
+        extra_kwargs = {
+            'email': {'read_only': True},  # El correo no puede ser modificado
+            'cedula': {'read_only': True},  # La cédula no puede ser modificada
+        }
