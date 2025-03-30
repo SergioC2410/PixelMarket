@@ -47,8 +47,6 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'django_filters',
     
-    # Documentación API
-    'drf_yasg',
     
     # CORS (Comunicación con frontend)
     'corsheaders',
