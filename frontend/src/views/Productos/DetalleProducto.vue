@@ -1,310 +1,149 @@
 <template>
-  <div class="container mt-4">
+  <div class="product-page">
     <!-- Breadcrumbs dinámicos -->
     <b-breadcrumb :items="breadcrumbs" class="mb-4"></b-breadcrumb>
 
     <!-- Estados de carga -->
     <template v-if="cargando">
       <div class="text-center py-5">
-        <b-spinner variant="primary" style="width: 3rem; height: 3rem;"></b-spinner>
-        <p class="mt-3">Cargando detalles del producto...</p>
+        <b-spinner variant="primary"></b-spinner>
+        <p class="mt-3">Cargando detalles...</p>
       </div>
     </template>
 
     <!-- Manejo de errores -->
-    <template v-else-if="error">
-      <b-alert variant="danger" show class="d-flex align-items-center">
-        <div class="flex-grow-1">
-          <i class="fas fa-exclamation-circle me-2"></i>
-          {{ error }}
-        </div>
-        <b-button variant="outline-danger" @click="recargarProducto" size="sm">
-          <i class="fas fa-sync-alt"></i> Reintentar
-        </b-button>
-      </b-alert>
-    </template>
+    <b-alert v-else-if="error" variant="danger" show class="d-flex align-items-center">
+      <div class="flex-grow-1">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        {{ error }}
+      </div>
+      <b-button variant="outline-danger" @click="recargarProducto" size="sm">
+        <i class="fas fa-sync-alt"></i> Reintentar
+      </b-button>
+    </b-alert>
 
     <!-- Contenido principal -->
     <template v-else-if="producto">
-      <div class="row">
-        <!-- Galería de imágenes -->
-        <div class="col-lg-6 mb-4 mb-lg-0">
-          <div class="sticky-top" style="top: 20px;">
-            <b-card no-body class="overflow-hidden shadow-sm">
-    <b-carousel 
-        id="product-gallery"
-        ref="carousel"
-        :interval="5000"
-        controls
-        indicators
-        @sliding-start="onSlideChange"
-      >
-      <!-- Imagen principal -->
-      <b-carousel-slide v-if="producto.imagen_url">
-        <template #img>
-          <img 
-            :src="producto.imagen_url" 
-            :alt="`${producto.nombre}`"
-            class="img-fluid w-100 product-image"
-            loading="eager"
-            @error="manejarErrorImagen"
-          >
-        </template>
-      </b-carousel-slide>
-      
-      <b-carousel-slide 
-        v-for="(imagen, index) in producto.imagenes_adicionales"
-        :key="`product-image-${index}`"
-      >
-        <template #img>
-          <img 
-            :src="imagen.url" 
-            :alt="`${producto.nombre} - Vista ${index + 2}`"
-            class="img-fluid w-100 product-image"
-            loading="lazy"
-            @error="manejarErrorImagen"
-          >
-        </template>
-      </b-carousel-slide>
-      
-      <!-- Placeholder solo si no hay imágenes -->
-      <b-carousel-slide v-if="!tieneImagenes">
-        <template #img>
-          <div class="placeholder-image">
-            <i class="fas fa-image fa-5x text-muted"></i>
-            <p class="mt-2">Imagen no disponible</p>
+      <div class="product-card">
+        <div class="product-content">
+          <!-- Detalles del producto -->
+          <div class="product-info">
+            <h1>{{ producto.nombre }}</h1>
+            
+            <div class="rating-container">
+              <span class="stars">
+                <i v-for="star in 5" :key="star" 
+                  :class="getStarClass(star, producto.valoracion_promedio)" 
+                  aria-hidden="true"></i>
+              </span>
+              <span class="review-count">({{ producto.cantidad_valoraciones }} reseñas)</span>
+            </div>
+
+            <p class="description">{{ producto.descripcion || 'Descripción no disponible' }}</p>
+
+            <div class="stock-container">
+              <span :class="['stock-badge', producto.stock > 0 ? 'in-stock' : 'out-of-stock']">
+                {{ producto.stock > 0 ? `Disponible (${producto.stock})` : 'Agotado' }}
+              </span>
+            </div>
+
+            <div class="quantity-control">
+              <label for="cantidad-selector">Cantidad</label>
+              <b-form-spinbutton 
+                id="cantidad-selector"
+                v-model="cantidad" 
+                min="1" 
+                :max="producto.stock"
+                class="quantity-selector"
+              ></b-form-spinbutton>
+            </div>
+
+            <div class="buy-button-container">
+              <button 
+                class="buy-button"
+                @mouseenter="isHovered = true"
+                @mouseleave="isHovered = false"
+                @click="agregarAlCarrito"
+                :disabled="producto.stock <= 0 || agregandoAlCarrito"
+              >
+                <span class="price">
+                  {{ formatoPrecio(producto.precio_descuento || producto.precio) }}
+                </span>
+                <span class="cart-icon">
+                  <i class="fas fa-shopping-cart"></i>
+                </span>
+                <span class="buy-text">
+                  {{ agregandoAlCarrito ? 'Agregando...' : 'Comprar ahora' }}
+                </span>
+              </button>
+            </div>
           </div>
-        </template>
-      </b-carousel-slide>
-    </b-carousel>
-            </b-card>
-          </div>
-        </div>
 
-        <!-- Detalles del producto - Sección derecha -->
-        <div class="col-lg-6">
-          <b-card no-body class="h-100 border-0">
-            <b-card-body>
-              <!-- Encabezado con título y SKU -->
-              <div class="d-flex justify-content-between align-items-start mb-3">
-                <h1 class="h2 mb-0">{{ producto.nombre }}</h1>
-                <b-badge variant="light" class="text-dark border">
-                  SKU: {{ producto.id }}
-                </b-badge>
-              </div>
-
-              <!-- Categoría y valoración -->
-              <div class="d-flex align-items-center mb-3">
-                <b-badge 
-                  variant="info" 
-                  class="me-2"
-                  :to="{ name: 'Productos', query: { categoria: producto.categoria.id } }"
-                >
-                  {{ producto.categoria.nombre }}
-                </b-badge>
-                
-                <b-form-rating
-                  v-model="producto.valoracion_promedio"
-                  readonly
-                  no-border
-                  size="sm"
-                  class="p-0 me-2"
-                  variant="warning"
-                ></b-form-rating>
-                
-                <small class="text-muted">
-                  ({{ producto.cantidad_valoraciones || 0 }} reseñas)
-                </small>
-              </div>
-
-              <!-- Precio y disponibilidad -->
-              <div class="mb-4">
-                <div class="d-flex align-items-center">
-                  <h4 class="text-primary mb-0">
-                    <template v-if="producto.precio_descuento">
-                      <span class="text-decoration-line-through text-muted me-2">
-                        {{ formatoPrecio(producto.precio) }}
-                      </span>
-                      <span>{{ formatoPrecio(producto.precio_descuento) }}</span>
-                      <b-badge variant="danger" class="ms-2">
-                        {{ calcularPorcentajeDescuento(producto) }}% OFF
-                      </b-badge>
-                    </template>
-                    <template v-else>
-                      {{ formatoPrecio(producto.precio) }}
-                    </template>
-                  </h4>
-                </div>
-                
-                <div class="mt-2">
-                  <b-badge 
-                    :variant="producto.stock > 0 ? 'success' : 'danger'" 
-                    pill
-                  >
-                    <i :class="producto.stock > 0 ? 'fas fa-check-circle' : 'fas fa-times-circle'"></i>
-                    {{ producto.stock > 0 ? `Disponible (${producto.stock} unidades)` : 'Agotado' }}
-                  </b-badge>
-                  
-                  <small v-if="producto.stock > 0 && producto.stock <= 10" class="text-warning ms-2">
-                    <i class="fas fa-exclamation-triangle"></i> Últimas unidades
-                  </small>
-                </div>
-              </div>
-
-              <!-- Descripción corta -->
-              <div class="mb-4">
-                <h5 class="mb-2">Descripción</h5>
-                <p class="text-muted">{{ producto.descripcion || 'No hay descripción disponible' }}</p>
-              </div>
-
-              <!-- Características destacadas -->
-              <div class="mb-4" v-if="producto.caracteristicas && producto.caracteristicas.length">
-                <h5 class="mb-2">Características principales</h5>
-                <ul class="list-unstyled">
-                  <li 
-                    v-for="(caracteristica, index) in producto.caracteristicas" 
-                    :key="`feature-${index}`" 
-                    class="mb-2"
-                  >
-                    <i class="fas fa-check text-success me-2"></i>
-                    {{ caracteristica }}
+          <!-- Imagen del producto -->
+          <div class="product-image-container">
+            <div class="image-wrapper">
+              <img 
+                :src="producto.imagen_url || placeholderImage" 
+                :alt="producto.nombre"
+                @error="manejarErrorImagen"
+                class="product-image"
+              >
+              
+              <div class="specs-overlay">
+                <h3>Especificaciones</h3>
+                <ul>
+                  <li v-for="(value, key) in producto.especificaciones" :key="key">
+                    <strong>{{ key }}:</strong> {{ value || 'N/A' }}
                   </li>
                 </ul>
               </div>
-
-              <!-- Selector de cantidad y acciones -->
-              <div class="border-top pt-3">
-                <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-                  <div class="flex-grow-1" style="max-width: 150px;">
-                    <label class="form-label small mb-1" for="cantidad-spinbutton">Cantidad:</label>
-                    <b-form-spinbutton 
-                      id="cantidad-spinbutton"
-                      v-model="cantidad" 
-                      min="1" 
-                      :max="producto.stock"
-                      size="lg"
-                      inline
-                    ></b-form-spinbutton>
-                  </div>
-                  
-                  <div class="flex-grow-1">
-                    <b-button 
-                      variant="primary" 
-                      size="lg" 
-                      @click="agregarAlCarrito"
-                      :disabled="producto.stock <= 0 || agregandoAlCarrito"
-                      class="w-100"
-                    >
-                      <template v-if="agregandoAlCarrito">
-                        <b-spinner small type="grow" class="me-1"></b-spinner>
-                        Agregando...
-                      </template>
-                      <template v-else>
-                        <i class="fas fa-cart-plus me-1"></i>
-                        Añadir al carrito
-                      </template>
-                    </b-button>
-                  </div>
-                </div>
-                
-                <b-button 
-                  variant="outline-primary" 
-                  size="lg" 
-                  @click="comprarAhora" 
-                  :disabled="producto.stock <= 0"
-                  class="w-100 mb-3"
-                >
-                  <i class="fas fa-bolt me-1"></i>
-                  Comprar ahora
-                </b-button>
-                
-                <b-alert
-                  v-model="mostrarMensajeCarrito"
-                  :variant="mensajeTipo"
-                  dismissible
-                  fade
-                  class="mt-3"
-                >
-                  {{ mensajeCarrito }}
-                </b-alert>
-              </div>
-            </b-card-body>
-          </b-card>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Sección de tabs (descripción, especificaciones, reseñas) -->
-      <div class="row mt-4">
-        <div class="col-12">
-          <b-card no-body class="shadow-sm">
-            <b-tabs card lazy>
-              <!-- Descripción detallada -->
-              <b-tab title="Descripción" active>
-                <div class="p-3" v-html="producto.descripcion_larga || 'No hay descripción detallada disponible'"></div>
-              </b-tab>
-              
-              <!-- Especificaciones técnicas -->
-              <b-tab title="Especificaciones">
-                <div class="p-3">
-                  <b-table-simple hover small responsive>
-                    <b-tbody>
-                      <b-tr v-for="(value, key) in producto.especificaciones" :key="`spec-${key}`">
-                        <b-th class="w-25">{{ key }}</b-th>
-                        <b-td>{{ value || 'No especificado' }}</b-td>
-                      </b-tr>
-                    </b-tbody>
-                  </b-table-simple>
-                </div>
-              </b-tab>
-              
-              <!-- Reseñas -->
-              <b-tab title="Reseñas">
-                <div class="p-3">
-                  <ValoracionesProducto 
-                    :producto-id="producto.id" 
-                    :valoracion-promedio="producto.valoracion_promedio"
-                    :cantidad-valoraciones="producto.cantidad_valoraciones"
-                    @valoracion-agregada="actualizarValoraciones"
-                  />
-                </div>
-              </b-tab>
-            </b-tabs>
-          </b-card>
-        </div>
+      <!-- Sección de tabs -->
+      <div class="additional-info">
+        <b-card>
+          <b-tabs>
+
+            <b-tab title="Reseñas">
+              <ValoracionesProducto 
+                :producto-id="producto.id"
+                @valoracion-agregada="actualizarValoraciones"
+              />
+            </b-tab>
+          </b-tabs>
+        </b-card>
       </div>
     </template>
   </div>
 </template>
-
 <script>
-import { mapActions, mapGetters, mapState } from 'vuex';
-import ValoracionesProducto from '@/components/ValoracionesProducto.vue';
+import { mapActions, mapGetters, mapState } from 'vuex'
+import ValoracionesProducto from '@/components/ValoracionesProducto.vue'
 
 export default {
   name: 'DetalleProducto',
-  components: {
-    ValoracionesProducto
-  },
+  components: { ValoracionesProducto },
   data() {
     return {
+      isHovered: false,
       cantidad: 1,
       agregandoAlCarrito: false,
-      mensajeCarrito: '',
-      mensajeTipo: 'success',
-      mostrarMensajeCarrito: false,
-      currentSlide: 0
-    };
+      placeholderImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+    }
   },
   computed: {
     ...mapGetters(['productoDetalle', 'estaCargando']),
     ...mapState(['error']),
     
     producto() {
-      return this.productoDetalle || {};
+      return this.productoDetalle || {}
     },
     
     cargando() {
-      return this.estaCargando;
+      return this.estaCargando
     },
     
     breadcrumbs() {
@@ -313,94 +152,50 @@ export default {
         { text: 'Productos', to: { name: 'Productos' } },
         { 
           text: this.producto.categoria?.nombre || 'Categoría', 
-          to: { 
-            name: 'Productos', 
-            query: { categoria: this.producto.categoria?.id } 
-          } 
+          to: { name: 'Productos', query: { categoria: this.producto.categoria?.id } }
         },
         { text: this.producto.nombre || 'Detalle', active: true }
-      ];
-    },
-    tieneImagenes() {
-      return this.producto.imagen_url || 
-            (this.producto.imagenes_adicionales && this.producto.imagenes_adicionales.length > 0);
+      ]
     }
   },
   methods: {
     ...mapActions(['cargarProductoPorId', 'agregarProductoAlCarrito']),
     
     calcularPorcentajeDescuento(producto) {
-      if (!producto.precio_descuento || !producto.precio) return 0;
-      return Math.round((1 - producto.precio_descuento / producto.precio) * 100);
+      if (!producto.precio_descuento) return 0
+      return Math.round((1 - producto.precio_descuento / producto.precio) * 100)
     },
     
     formatoPrecio(precio) {
-      if (!precio) return '$0.00';
       return new Intl.NumberFormat('es-AR', {
         style: 'currency',
         currency: 'ARS'
-      }).format(precio);
-    },
-    
-    // Optimización de imágenes
-    optimizeImageUrl(url, width = 800) {
-      if (!url) return '';
-      // Si ya es una URL de Cloudinary o similar con parámetros
-      if (url.includes('upload/') && url.includes('image/upload')) {
-        return url.replace(/upload\/.*\/(.*)/, `upload/w_${width},q_auto,f_auto/$1`);
-      }
-      // Para URLs locales
-      return url;
-    },
-    
-    generateWebPUrl(url) {
-      if (!url) return '';
-      return this.optimizeImageUrl(url) + (url.includes('?') ? '&' : '?') + 'format=webp';
+      }).format(precio || 0)
     },
     
     async agregarAlCarrito() {
-      this.agregandoAlCarrito = true;
-      this.mostrarMensajeCarrito = false;
-      
+      this.agregandoAlCarrito = true
       try {
         await this.agregarProductoAlCarrito({
           productoId: this.producto.id,
           cantidad: this.cantidad
-        });
-        
-        this.mensajeTipo = 'success';
-        this.mensajeCarrito = `${this.cantidad} ${this.cantidad > 1 ? 'unidades' : 'unidad'} agregadas al carrito`;
-        this.mostrarMensajeCarrito = true;
-        
-        // Evento para analytics
-        this.$gtm.trackEvent({
-          event: 'add_to_cart',
-          ecommerce: {
-            items: [{
-              item_id: this.producto.id,
-              item_name: this.producto.nombre,
-              price: this.producto.precio_descuento || this.producto.precio,
-              quantity: this.cantidad
-            }]
-          }
-        });
+        })
+        this.$bvToast.toast('Producto agregado al carrito', {
+          variant: 'success',
+          autoHideDelay: 3000
+        })
       } catch (error) {
-        this.mensajeTipo = 'danger';
-        this.mensajeCarrito = error.message || 'Error al agregar al carrito';
-        this.mostrarMensajeCarrito = true;
+        this.$bvToast.toast(error.message, {
+          variant: 'danger',
+          autoHideDelay: 3000
+        })
       } finally {
-        this.agregandoAlCarrito = false;
+        this.agregandoAlCarrito = false
       }
     },
     
-    comprarAhora() {
-      this.agregarAlCarrito().then(() => {
-        this.$router.push({ name: 'Carrito' });
-      });
-    },
-    
     recargarProducto() {
-      this.cargarProductoPorId(this.$route.params.id);
+      this.cargarProductoPorId(this.$route.params.id)
     },
     
     actualizarValoraciones({ promedio, cantidad }) {
@@ -408,98 +203,342 @@ export default {
         ...this.producto,
         valoracion_promedio: promedio,
         cantidad_valoraciones: cantidad
-      });
+      })
     },
     
-    onSlideChange(slideIndex) {
-      this.currentSlide = slideIndex;
+    manejarErrorImagen(event) {
+      event.target.src = this.placeholderImage
+    },
+    getStarClass(starIndex, rating) {
+    const ratingValue = rating || 0;
+    if (starIndex <= ratingValue) {
+      return 'fas fa-star';
     }
+    if (starIndex - 0.5 <= ratingValue) {
+      return 'fas fa-star-half-alt';
+    }
+    return 'far fa-star';
+  }
   },
   async created() {
-    await this.cargarProductoPorId(this.$route.params.id);
+    await this.cargarProductoPorId(this.$route.params.id)
   },
   watch: {
     '$route.params.id': {
       handler(newId) {
-        if (newId) {
-          this.cargarProductoPorId(newId);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        if (newId) this.cargarProductoPorId(newId)
       },
       immediate: true
     }
   }
-};
+}
 </script>
 
 <style scoped>
-.sticky-top {
-  position: sticky;
-  z-index: 1020;
-  top: 20px;
+/* Base styles */
+.product-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  background-color: white;
 }
 
-/* Estilos para el carrusel */
-.carousel-img {
-  max-height: 500px;
-  object-fit: contain;
-  background-color: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
+/* Container */
+.product-card {
+  width: 750px;
+  height: 400px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  margin: 1.5rem auto;
+  overflow: hidden;
+  opacity: 0;
+  animation: fadeIn 0.6s ease-out forwards;
 }
 
-/* Miniaturas */
-.thumbnail {
-  width: 60px;
-  height: 60px;
-  object-fit: cover;
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
-  border-radius: 4px;
+/* Content grid */
+.product-content {
+  display: flex;
+  height: 100%;
+  padding: 1.5rem;
+  gap: 2rem;
 }
 
-.thumbnail:hover {
-  border-color: #007bff;
+/* Left column (info) */
+.product-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
 }
 
-.thumbnail-active {
-  border-color: #007bff;
-  opacity: 0.8;
-}
-
-/* Mejoras de accesibilidad */
-[aria-disabled="true"] {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-/* Transiciones suaves */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
+/* Text styles */
+h1 {
+  font-size: 1.8rem;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  animation: slideIn 0.5s 0.1s ease-out forwards;
   opacity: 0;
 }
 
-/* Responsividad mejorada */
-@media (max-width: 992px) {
-  .sticky-top {
-    position: static;
+.description {
+  color: #555;
+  line-height: 1.6;
+  text-align: center;
+  margin: 1.5rem 0;
+  padding: 0 1rem;
+  animation: fadeIn 0.5s 0.3s ease-out forwards;
+  opacity: 0;
+}
+
+/* Rating */
+.rating-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  animation: fadeIn 0.5s 0.2s ease-out forwards;
+  opacity: 0;
+}
+
+.stars {
+  color: #FFD700;
+  font-size: 1rem;
+}
+
+.review-count {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+/* Stock */
+.stock-container {
+  margin: 0.5rem 0;
+  animation: fadeIn 0.5s 0.4s ease-out forwards;
+  opacity: 0;
+  text-align: center;
+}
+
+.stock-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: white;
+}
+
+.stock-badge.in-stock {
+  background: #28a745;
+}
+
+.stock-badge.out-of-stock {
+  background: #dc3545;
+}
+
+/* Quantity */
+.quantity-control {
+  display: none;
+  margin: 1rem 0;
+  animation: fadeIn 0.5s 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+.quantity-control label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #2c3e50;
+}
+
+/* Button */
+.buy-button-container {
+  margin-top: auto;
+  padding: 0 1rem;
+  animation: fadeIn 0.5s 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.buy-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0;
+  width: 100%;
+  height: 50px;
+  font-size: 1rem;
+  font-weight: 500;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.buy-button:hover {
+  background: #218838;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(40, 167, 69, 0.25);
+}
+
+.buy-button:disabled {
+  background: #95a5a6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.buy-button .price {
+  padding: 0 1.5rem;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.buy-button .cart-icon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(-100%);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.buy-button .buy-text {
+  flex: 1;
+  text-align: center;
+}
+
+.buy-button:hover .price {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.buy-button:hover .cart-icon {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* Right column (image) */
+.product-image-container {
+  flex: 1;
+  padding: 1rem;
+  animation: fadeIn 0.5s 0.2s ease-out forwards;
+  opacity: 0;
+}
+
+.image-wrapper {
+  position: relative;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.image-wrapper:hover .product-image {
+  transform: scale(1.03);
+}
+
+/* Specs overlay */
+.specs-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(40, 167, 69, 0.95);
+  color: white;
+  padding: 1.5rem;
+  transform: translateY(100%) rotateX(15deg);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  overflow-y: auto;
+}
+
+.specs-overlay h3 {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.specs-overlay ul {
+  list-style: none;
+  padding: 0;
+}
+
+.specs-overlay li {
+  margin: 0.8rem 0;
+  padding: 0.6rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.image-wrapper:hover .specs-overlay {
+  transform: translateY(0) rotateX(0);
+  opacity: 1;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-  
-  .thumbnail {
-    width: 50px;
-    height: 50px;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* Optimización para móviles */
-@media (max-width: 768px) {
-  .carousel-img {
-    max-height: 300px;
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 800px) {
+  .product-card {
+    width: 100%;
+    height: auto;
+  }
+  
+  .product-content {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .product-image-container {
+    padding: 0;
+    height: 250px;
+  }
+  
+  .description {
+    padding: 0;
   }
 }
 </style>

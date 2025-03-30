@@ -1,37 +1,72 @@
 """
 URL configuration for backend project.
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+Incluye:
+- Panel de administración
+- Endpoints API para productos, pedidos, usuarios y facturas
+- Configuración para archivos media en desarrollo
+- Documentación automática de API (Swagger/Redoc)
 """
+
 from django.contrib import admin
 from django.urls import path, include
 from django.http import JsonResponse
 from django.conf import settings
 from django.conf.urls.static import static
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
+from rest_framework import permissions
+
+# Configuración para documentación API
+schema_view = get_schema_view(
+    openapi.Info(
+        title="API PixelMarket",
+        default_version='v1',
+        description="Documentación de la API para el e-commerce PixelMarket",
+        contact=openapi.Contact(email="soporte@pixelmarket.com"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+)
 
 def home(request):
-    return JsonResponse({"mensaje": "Bienvenido a la API de productos"}, status=200)
+    """Endpoint raíz que muestra información básica de la API"""
+    api_info = {
+        "mensaje": "Bienvenido a la API de PixelMarket",
+        "endpoints": {
+            "admin": "/admin/",
+            "api_docs": "/api/docs/",
+            "productos": "/api/productos/",
+            "pedidos": "/api/pedidos/",
+            "usuarios": "/api/usuarios/",
+            "facturas": "/api/facturas/"
+        },
+        "version": "1.0.0"
+    }
+    return JsonResponse(api_info, status=200)
 
 urlpatterns = [
-    path('admin/', admin.site.urls),  
-    path('api/', include('productos.urls')),  # URLs de productos
-    path('api/', include('pedidos.urls')),   # URLs de pedidos
-    path('api/', include('usuarios.urls')),  # Incluye las URLs de la app 'usuarios'
-    path('api/', include('facturas.urls')),  # Incluye las URLs de la app 'facturas'
-    path('', home),  # Redirigir la raíz a un mensaje JSON
+    # Panel de administración
+    path('admin/', admin.site.urls),
+    
+    # Documentación API
+    path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='api-docs'),
+    path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='api-redoc'),
+    
+    # Apps principales
+    path('api/', include('productos.urls')),
+    path('api/', include('pedidos.urls')),
+    path('api/', include('usuarios.urls')),
+    path('api/', include('facturas.urls')),
+    
+    # Health Check
+    path('health/', lambda r: JsonResponse({"status": "ok"})),
+    
+    # Página raíz
+    path('', home, name='home'),
 ]
 
-# Solo en desarrollo: servir archivos media
+# Configuraciones para entorno de desarrollo
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

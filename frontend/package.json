@@ -8,6 +8,9 @@
     "test": "vue-cli-service test"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.7.2",
+    "@fortawesome/free-solid-svg-icons": "^6.7.2",
+    "@fortawesome/vue-fontawesome": "^3.0.8",
     "axios": "^1.8.3",
     "bootstrap": "^5.3.3",
     "bootstrap-vue": "^2.23.1",
