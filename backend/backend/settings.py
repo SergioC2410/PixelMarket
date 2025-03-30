@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     
     # Django REST Framework
     'rest_framework',
-    'rest_framework.authtoken',
+    'rest_framework_simplejwt',
     'django_filters',
     
     
@@ -57,6 +57,8 @@ INSTALLED_APPS = [
     'usuarios',
     'facturas',
 ]
+
+AUTH_USER_MODEL = 'usuarios.Usuario'
 
 # ==================== MIDDLEWARE ====================
 
