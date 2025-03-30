@@ -129,15 +129,15 @@ export default {
       this.$router.push({ name: 'metodo-de-pago' });
     },
     async fetchExchangeRate() {
-      try {
-        const response = await axios.get('https://s3.amazonaws.com/dolartoday/data.json');
-        // Obtener el precio del dólar desde la API (ejemplo: DolarToday)
-        this.exchangeRate = response.data.USD.promedio_real;
-      } catch (error) {
-        console.error('Error al obtener el tipo de cambio:', error);
-        this.exchangeRate =66.78 ; // Valor por defecto en caso de error
-      }
-    }
+  try {
+    const apiKey = '486f0d2b81e7c30a7340fb24'; // Tu clave API de ExchangeRate-API
+    const response = await axios.get(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`);
+    this.exchangeRate = response.data.conversion_rates.VES; // Obtener la tasa de cambio USD a VES
+  } catch (error) {
+    console.error('Error al obtener el tipo de cambio:', error);
+    this.exchangeRate = 66.78; // Valor por defecto en caso de error
+  }
+}
   },
   mounted() {
     this.fetchExchangeRate(); // Llamar a la API al cargar el componente
@@ -206,14 +206,20 @@ export default {
   justify-content: center;
   align-items: center;
 }
+.quantity-btn:hover {
+  background-color: #0056b3;}
 
 .remove-btn {
-  background-color: #dc3545;
+  background-color: #f50820;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.remove-btn:hover {
+  background-color: #ca0b1e;
 }
 
 .checkout-summary {
@@ -243,12 +249,15 @@ export default {
 
 .checkout-btn {
   width: 100%;
-  padding: 1rem;
+  padding: 3%;
   background-color: #007bff;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  text-decoration-line: none;
+  justify-content: center;
+  align-items: center;
 }
 
 .checkout-btn:hover {

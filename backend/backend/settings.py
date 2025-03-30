@@ -84,18 +84,17 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'Pixel_Market',
-        'USER': 'Pixel_Market',
-        'PASSWORD': 'Pixelmarket1',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'ENGINE': 'django.db.backends.mysql',  # Usamos MySQL como base de datos
+        'NAME': 'Pixel_Market',  # Nombre de la base de datos
+        'USER': 'Pixel_Market',  # Usuario de la base de datos
+        'PASSWORD': 'pixelmarket1',  # Contraseña del usuario de la base de datos
+        'HOST': 'localhost',  # Dirección del servidor de base de datos
+        'PORT': '3306',  # Puerto para conectar con la base de datos
     }
 }
 
 
-# Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
+# --- Validación de Contraseñas ---
 
 AUTH_PASSWORD_VALIDATORS = [
     {

@@ -109,6 +109,7 @@ body {
   max-height: 60px; /* Limita la altura de la barra de navegación */
   overflow: hidden; /* Evita que el contenido desborde */
   padding: 0.5rem 0; /* Ajusta el padding para mantener la altura */
+  margin: 0.5rem auto
 }
 
 .navbar-brand {
