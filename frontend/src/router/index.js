@@ -10,6 +10,8 @@ import CategoriasView from '@/views/Productos/CategoriasView.vue'; // Vista de c
 import Register from '@/views/Auth/Register.vue'; // Vista de registro
 import Contraseña from '@/views/Auth/Contraseña.vue'; // Vista de recuperación de contraseña
 import MetodoPago from '@/components/MetodoPago.vue'; // Componente de método de pago
+import SearchResults from '@/components/SearchResults.vue'; // Componente de resultados de búsqueda
+import SearchBar from '@/components/SearchBar.vue'; // Componente de barra de búsqueda
 
 // Definir rutas
 const routes = [
@@ -57,12 +59,24 @@ const routes = [
     path: '/metodo-de-pago',
     name: 'MetodoPago',
     component: MetodoPago
+  },
+  {
+    path: '/search/:query',
+    name: 'search',
+    component: SearchResults,
+    props: true
+  },
+  {
+    path: '/search/:query',
+    name: 'searchbar',
+    component: SearchBar,
+    props: true
   }
 ];
 
 // Crear el router
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(process.env.BASE_URL),
   routes
 });
 
