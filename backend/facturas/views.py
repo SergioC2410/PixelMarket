@@ -1,170 +1,106 @@
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Sum, F
-from django.utils.dateparse import parse_date
-from django.shortcuts import get_object_or_404
+from django.conf import settings
 from .models import Factura
 from pedidos.models import Pedido
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import io
+import os
+from datetime import datetime
 
 @csrf_exempt
 def generar_factura(request, pedido_id):
     """
-    Genera una factura en PDF para un pedido específico.
+    Vista para generar una factura en PDF para un pedido específico.
+    Incluye todos los datos del usuario y guarda el PDF en media/facturas.
     """
     if request.method == 'GET':
         try:
-            pedido = Pedido.objects.get(id=pedido_id)
+            # Obtener el pedido con el usuario relacionado (optimizado)
+            pedido = Pedido.objects.select_related('usuario').get(id=pedido_id)
+            usuario = pedido.usuario
 
-            # Calcular el total de la factura considerando cantidad * precio_unitario
-            total_factura = pedido.items.aggregate(
-                total=Sum(F('cantidad') * F('precio_unitario'))
-            )['total'] or 0
-
-            # Crear la factura
-            factura = Factura.objects.create(
+            # Crear la factura (o obtener existente)
+            factura, created = Factura.objects.get_or_create(
                 pedido=pedido,
-                total=total_factura
+                defaults={'total': pedido.total}
             )
 
-            # Crear un buffer para el PDF
+            # Crear buffer para el PDF
             buffer = io.BytesIO()
-
-            # Crear el PDF con ReportLab
             pdf = canvas.Canvas(buffer, pagesize=letter)
             pdf.setFont("Helvetica", 12)
 
-            # Encabezado de la factura
-            pdf.drawString(100, 750, f"Factura #{factura.factura_id}")
-            pdf.drawString(100, 730, f"Fecha de emisión: {factura.fecha_emision.strftime('%Y-%m-%d %H:%M:%S')}") #año, mes // hora, minuto, segundo
-            pdf.drawString(100, 710, f"Pedido #{pedido.id}")
-            pdf.drawString(100, 690, f"Cliente: {pedido.usuario.username}")
+            # --- Encabezado ---
+            pdf.drawString(100, 800, "FACTURA")
+            pdf.drawString(100, 780, f"Número: #{factura.id}")
+            pdf.drawString(100, 760, f"Fecha: {factura.fecha_emision.strftime('%d/%m/%Y %H:%M')}")
+            
+            # --- Datos del cliente ---
+            pdf.drawString(100, 730, "DATOS DEL CLIENTE:")
+            pdf.drawString(120, 710, f"Nombre: {usuario.nombre_completo()}")
+            pdf.drawString(120, 690, f"Cédula: {usuario.cedula}")
+            pdf.drawString(120, 670, f"Dirección: {usuario.direccion or 'No registrada'}")
+            pdf.drawString(120, 650, f"Teléfono: {str(usuario.telefono) if usuario.telefono else 'No registrado'}")
+            pdf.drawString(120, 630, f"Email: {usuario.email}")
 
-            # Detalles de los ítems
-            y = 650
-            pdf.drawString(100, y, "Detalles del pedido:")
-            y -= 20
-
+            # --- Detalles del pedido ---
+            pdf.drawString(100, 600, "DETALLES DEL PEDIDO:")
+            y = 580
             for item in pedido.items.all():
-                total_producto = item.cantidad * item.precio_unitario
-                pdf.drawString(120, y, f"{item.cantidad}x {item.producto.nombre} - ${item.precio_unitario} c/u (Total: ${total_producto})")
+                pdf.drawString(120, y, f"• {item.cantidad}x {item.producto.nombre} - ${item.precio_unitario} c/u")
                 y -= 20
 
-            # Total de la factura
-            pdf.drawString(100, y - 20, f"Total a pagar: ${total_factura}")
+            # --- Totales ---
+            pdf.drawString(100, y - 40, f"Subtotal: ${factura.total}")
+            pdf.drawString(100, y - 60, f"Total a pagar: ${factura.total}")
+            pdf.drawString(100, y - 80, "¡Gracias por su compra!")
 
-            # Finalizar el PDF
             pdf.showPage()
             pdf.save()
+
+            # --- Guardar en media/facturas ---
+            os.makedirs(os.path.join(settings.MEDIA_ROOT, 'facturas'), exist_ok=True)
+            filename = f"factura_{factura.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            filepath = os.path.join(settings.MEDIA_ROOT, 'facturas', filename)
+            
+            with open(filepath, 'wb') as f:
+                f.write(buffer.getvalue())
 
             # Devolver el PDF como respuesta
             buffer.seek(0)
             response = HttpResponse(buffer, content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="factura_{factura.factura_id}.pdf"'
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
+
         except Pedido.DoesNotExist:
-            return JsonResponse({'error': 'El pedido no existe'}, status=404)
+            return JsonResponse({'error': 'Pedido no encontrado'}, status=404)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
-
+            return JsonResponse({'error': str(e)}, status=500)
+    
     return JsonResponse({'error': 'Método no permitido'}, status=405)
-
 
 @csrf_exempt
 def listar_facturas(request):
     """
-    Lista todas las facturas con filtros opcionales:
-    - ?fecha=YYYY-MM-DD  (Filtra por fecha de emisión)
-    - ?cliente=username   (Filtra por cliente)
-    - ?pedido_id=123      (Filtra por pedido específico)
+    Vista para listar todas las facturas con datos básicos del usuario.
     """
     if request.method == 'GET':
-        facturas = Factura.objects.all()
-
-        # Aplicar filtros según los parámetros de la solicitud
-        fecha = request.GET.get('fecha')
-        cliente = request.GET.get('cliente')
-        pedido_id = request.GET.get('pedido_id')
-
-        if fecha:
-            try:
-                fecha_parsed = parse_date(fecha)
-                if fecha_parsed:
-                    facturas = facturas.filter(fecha_emision__date=fecha_parsed)
-            except ValueError:
-                return JsonResponse({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}, status=400)
-
-        if cliente:
-            facturas = facturas.filter(pedido__usuario__username=cliente)
-
-        if pedido_id:
-            try:
-                pedido_id = int(pedido_id)
-                facturas = facturas.filter(pedido__id=pedido_id)
-            except ValueError:
-                return JsonResponse({'error': 'pedido_id debe ser un número entero'}, status=400)
-
-        # Convertir a JSON
+        facturas = Factura.objects.select_related('pedido__usuario').all()
+        
         facturas_data = [{
-            'factura_id': factura.factura_id,
+            'id': factura.id,
             'pedido_id': factura.pedido.id,
-            'fecha_emision': factura.fecha_emision.strftime('%Y-%m-%d'),
-            'cliente': factura.pedido.usuario.username,
-            'total': str(factura.total)
+            'fecha_emision': factura.fecha_emision.strftime('%Y-%m-%d %H:%M'),
+            'total': str(factura.total),
+            'cliente': {
+                'nombre': factura.pedido.usuario.nombre_completo(),
+                'cedula': factura.pedido.usuario.cedula,
+                'email': factura.pedido.usuario.email
+            }
         } for factura in facturas]
-
+        
         return JsonResponse(facturas_data, safe=False)
-
+    
     return JsonResponse({'error': 'Método no permitido'}, status=405)
-
-
-@csrf_exempt
-def descargar_factura_pdf(request, factura_id):
-    """
-    Descarga una factura en formato PDF.
-    """
-    try:
-        # Obtener la factura
-        factura = Factura.objects.get(factura_id=factura_id)
-
-        # Crear un buffer para el PDF
-        buffer = io.BytesIO()
-
-        # Crear el PDF con ReportLab
-        pdf = canvas.Canvas(buffer, pagesize=letter)
-        pdf.setFont("Helvetica", 12)
-
-        # Encabezado de la factura
-        pdf.drawString(100, 750, f"Factura #{factura.factura_id}")
-        pdf.drawString(100, 730, f"Fecha de emisión: {factura.fecha_emision.strftime('%Y-%m-%d %H:%M:%S')}")
-        pdf.drawString(100, 710, f"Pedido #{factura.pedido.id}")
-        pdf.drawString(100, 690, f"Cliente: {factura.pedido.usuario.username}")
-
-        # Detalles de los ítems
-        y = 650
-        pdf.drawString(100, y, "Detalles del pedido:")
-        y -= 20
-
-        for item in factura.pedido.items.all():
-            total_producto = item.cantidad * item.precio_unitario
-            pdf.drawString(120, y, f"{item.cantidad}x {item.producto.nombre} - ${item.precio_unitario} c/u (Total: ${total_producto})")
-            y -= 20
-
-        # Total de la factura
-        pdf.drawString(100, y - 20, f"Total a pagar: ${factura.total}")
-
-        # Finalizar el PDF
-        pdf.showPage()
-        pdf.save()
-
-        # Devolver el PDF como respuesta
-        buffer.seek(0)
-        response = HttpResponse(buffer, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="factura_{factura.factura_id}.pdf"'
-        return response
-    except Factura.DoesNotExist:
-        return JsonResponse({'error': 'La factura no existe'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
