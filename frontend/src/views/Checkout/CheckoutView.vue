@@ -68,8 +68,22 @@ export default {
   data() {
     return {
       cartItems: [
-        { id: 1, name: 'Producto A', price: 1000, quantity: 1, image: 'url', discountPercentage: 10 },
-        { id: 2, name: 'Producto B', price: 2000, quantity: 2, image: 'url', discountPercentage: 5 },
+        { 
+          id: 1, 
+          name: 'Producto A', 
+          price: 1000, 
+          quantity: 1, 
+          image: 'https://via.placeholder.com/120', // Imagen genérica
+          discountPercentage: 10 
+        },
+        { 
+          id: 2, 
+          name: 'Producto B', 
+          price: 2000, 
+          quantity: 2, 
+          image: 'https://via.placeholder.com/120?text=Producto+B', 
+          discountPercentage: 5 
+        }
       ],
       shippingCost: 500,
       taxRate: 0.16,
