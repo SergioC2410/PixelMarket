@@ -1,7 +1,6 @@
 <template>
-      <div>
-        <!-- Contenido principal -->
-        <main class="main-content">
+  <div>
+    <main class="main-content">
       <!-- Sección de marcas -->
       <section class="advertising-section container mb-5 pt-4">
         <h2 class="section-title mb-4">Marcas que trabajan con nosotros</h2>
@@ -15,27 +14,29 @@
       </section>
 
       <!-- Sección de descuentos -->
-      <section class="discounts-section container mb-5">
+      <section v-if="productosConDescuento.length > 0" class="discounts-section container mb-5">
         <div class="section-header bg-white p-4 rounded-3 shadow-sm">
           <h2 class="section-title mb-0">Descuentos del Día</h2>
         </div>
         <div class="row g-4 mt-2">
-          <article v-for="product in discountedProducts" :key="product.id" class="col-6 col-md-4 col-lg-3">
-            <div class="card h-100 border-0 shadow-hover">
-              <img :src="product.image" class="card-img-top" :alt="product.name">
-              <div class="card-body">
-                <h3 class="card-title fs-6">{{ product.name }}</h3>
-                <p class="text-danger mb-1 fw-bold">{{ product.discount }}% OFF</p>
-                <p class="text-muted small mb-0"><s>${{ product.originalPrice }}</s></p>
-                <p class="text-success fw-bold mb-0">${{ product.discountedPrice }}</p>
+          <article v-for="product in productosConDescuento" :key="product.id" class="col-6 col-md-4 col-lg-3">
+            <router-link :to="`/productos/${product.id}`" class="text-decoration-none">
+              <div class="card h-100 border-0 shadow-hover">
+                <img :src="product.imagen_url || 'https://via.placeholder.com/150'" class="card-img-top" :alt="product.nombre">
+                <div class="card-body">
+                  <h3 class="card-title fs-6">{{ product.nombre }}</h3>
+                  <p class="text-danger mb-1 fw-bold">{{ product.descuento_aplicado }}% OFF</p>
+                  <p class="text-muted small mb-0"><s>${{ product.precio_original }}</s></p>
+                  <p class="text-success fw-bold mb-0">${{ product.precio_con_descuento }}</p>
+                </div>
               </div>
-            </div>
+            </router-link>
           </article>
         </div>
       </section>
 
       <!-- Carrusel de categorías -->
-      <section class="categories-section container mb-5">
+      <section v-if="categories.length > 0" class="categories-section container mb-5">
         <div class="section-header bg-white p-4 rounded-3 shadow-sm">
           <h2 class="section-title mb-0">Explorar Categorías</h2>
         </div>
@@ -45,11 +46,11 @@
               <div class="carousel-item" v-for="(chunk, index) in chunkedCategories" :key="index" :class="{ active: index === 0 }">
                 <div class="row g-3">
                   <article v-for="category in chunk" :key="category.id" class="col-6 col-md-3">
-                    <router-link to="/productos" class="text-decoration-none">
+                    <router-link :to="`/productos?categoria=${category.id}`" class="text-decoration-none">
                       <div class="card h-100 border-0 shadow-hover">
-                        <img :src="category.image" class="card-img-top" :alt="category.name">
+                        <img :src="category.imagen || 'https://via.placeholder.com/150'" class="card-img-top" :alt="category.nombre">
                         <div class="card-body text-center">
-                          <h3 class="card-title fs-6 mb-0">{{ category.name }}</h3>
+                          <h3 class="card-title fs-6 mb-0">{{ category.nombre }}</h3>
                         </div>
                       </div>
                     </router-link>
@@ -57,7 +58,6 @@
                 </div>
               </div>
             </div>
-            <!-- Controles del carrusel -->
             <button class="carousel-control-prev" type="button" data-bs-target="#categoriesCarousel" data-bs-slide="prev">
               <span class="carousel-control-prev-icon bg-primary rounded-circle p-3" aria-hidden="true"></span>
               <span class="visually-hidden">Anterior</span>
@@ -71,29 +71,40 @@
       </section>
 
       <!-- Productos destacados -->
-      <section class="featured-products-section container mb-5">
+      <section v-if="productosDestacados.length > 0" class="featured-products-section container mb-5">
         <div class="section-header bg-white p-4 rounded-3 shadow-sm">
           <h2 class="section-title mb-0">Productos Destacados</h2>
         </div>
         <div class="row g-4 mt-2">
-          <article v-for="product in randomProducts" :key="product.id" class="col-6 col-md-4 col-lg-3">
-            <div class="card h-100 border-0 shadow-hover">
-              <img :src="product.image" class="card-img-top" :alt="product.name">
-              <div class="card-body">
-                <h3 class="card-title fs-6">{{ product.name }}</h3>
-                <p class="text-primary fw-bold mb-0">${{ product.price }}</p>
+          <article v-for="product in productosDestacados" :key="product.id" class="col-6 col-md-4 col-lg-3">
+            <router-link :to="`/productos/${product.id}`" class="text-decoration-none">
+              <div class="card h-100 border-0 shadow-hover">
+                <img :src="product.imagen_url || 'https://via.placeholder.com/150'" class="card-img-top" :alt="product.nombre">
+                <div class="card-body">
+                  <h3 class="card-title fs-6">{{ product.nombre }}</h3>
+                  <p class="text-primary fw-bold mb-0">${{ product.precio }}</p>
+                </div>
               </div>
-            </div>
+            </router-link>
           </article>
         </div>
       </section>
+
+      <!-- Loader -->
+      <div v-if="loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+      </div>
     </main>
-</div>
+  </div>
 </template>
 
 <script>
+import { mapGetters, mapActions } from 'vuex';
+
 export default {
-  name: 'App',
+  name: 'HomeView',
   data() {
     return {
       brands: [
@@ -104,31 +115,20 @@ export default {
         { id: 5, name: 'Adidas', image: 'https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg' },
         { id: 6, name: 'LG', image: 'https://upload.wikimedia.org/wikipedia/commons/2/20/LG_symbol.svg' },
       ],
-      discountedProducts: [
-        { id: 1, name: 'Producto 1', image: 'https://via.placeholder.com/150', discount: 20, originalPrice: 100, discountedPrice: 80 },
-        { id: 2, name: 'Producto 2', image: 'https://via.placeholder.com/150', discount: 15, originalPrice: 200, discountedPrice: 170 },
-        { id: 3, name: 'Producto 3', image: 'https://via.placeholder.com/150', discount: 10, originalPrice: 150, discountedPrice: 135 },
-        { id: 4, name: 'Producto 4', image: 'https://via.placeholder.com/150', discount: 25, originalPrice: 300, discountedPrice: 225 },
-      ],
-      categories: [
-        { id: 1, name: 'Electrónica', image: 'https://via.placeholder.com/150' },
-        { id: 2, name: 'Hogar', image: 'https://via.placeholder.com/150' },
-        { id: 3, name: 'Moda', image: 'https://via.placeholder.com/150' },
-        { id: 4, name: 'Deportes', image: 'https://via.placeholder.com/150' },
-        { id: 5, name: 'Juguetes', image: 'https://via.placeholder.com/150' },
-        { id: 6, name: 'Libros', image: 'https://via.placeholder.com/150' },
-        { id: 7, name: 'Belleza', image: 'https://via.placeholder.com/150' },
-        { id: 8, name: 'Automóviles', image: 'https://via.placeholder.com/150' },
-      ],
-      randomProducts: [
-        { id: 1, name: 'Producto A', image: 'https://via.placeholder.com/150', price: 50 },
-        { id: 2, name: 'Producto B', image: 'https://via.placeholder.com/150', price: 75 },
-        { id: 3, name: 'Producto C', image: 'https://via.placeholder.com/150', price: 100 },
-        { id: 4, name: 'Producto D', image: 'https://via.placeholder.com/150', price: 120 },
-      ],
+      loading: false
     };
   },
   computed: {
+    ...mapGetters([
+      'todasCategorias',
+      'productosDestacados',
+      'productosConDescuento'
+    ]),
+    
+    categories() {
+      return this.todasCategorias;
+    },
+    
     chunkedCategories() {
       const chunkSize = 4;
       return this.categories.reduce((resultArray, item, index) => {
@@ -137,8 +137,24 @@ export default {
         resultArray[chunkIndex].push(item);
         return resultArray;
       }, []);
-    },
+    }
   },
+  async created() {
+    this.loading = true;
+    try {
+      await Promise.all([
+        this.cargarCategorias(),
+        this.cargarProductos()
+      ]);
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+    } finally {
+      this.loading = false;
+    }
+  },
+  methods: {
+    ...mapActions(['cargarCategorias', 'cargarProductos'])
+  }
 };
 </script>
 
@@ -246,5 +262,11 @@ export default {
   .carousel-control-next-icon {
     padding: 0.8rem;
   }
+}
+
+/* Loader */
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
 }
 </style>

@@ -1,27 +1,23 @@
 import { createStore } from 'vuex';
 import axiosInstance from '@/util/axios';
 
+// Función para construir URLs completas de imágenes
 const construirUrlCompleta = (imagenPath) => {
   if (!imagenPath) return null;
+  if (imagenPath.startsWith('http')) return imagenPath;
   
-  // Si ya es una URL completa
-  if (imagenPath.startsWith('http')) {
-    return imagenPath;
-  }
-  
-  // Construir URL basada en tu entorno
   const baseUrl = process.env.NODE_ENV === 'production' 
     ? 'https://tudominio.com/media/' 
     : 'http://localhost:8000/media/';
   
   return baseUrl + imagenPath;
 };
-// Helper para crear FormData
+
+// Helper para crear FormData desde objetos
 const crearFormData = (datos) => {
   const formData = new FormData();
   Object.entries(datos).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
-      // Manejo de archivos y arrays
       if (value instanceof File) {
         formData.append(key, value, value.name);
       } else if (Array.isArray(value)) {
@@ -50,7 +46,10 @@ export default createStore({
       totalPages: 1,
       totalItems: 0,
       itemsPerPage: 10
-    }
+    },
+    // Nuevos estados para manejar descuentos y destacados
+    productosDestacados: [],
+    productosConDescuento: []
   },
   
   getters: {
@@ -61,6 +60,10 @@ export default createStore({
     ultimoError: (state) => state.error,
     datosPaginacion: (state) => state.paginacion,
     estaAutenticado: (state) => !!state.token,
+
+    // Nuevos getters
+    productosDestacados: (state) => state.productosDestacados,
+    productosConDescuento: (state) => state.productosConDescuento,
 
     productosPorCategoria: (state) => (categoriaId) => {
       return state.productos.filter(p => p.categoria?.id === categoriaId);
@@ -126,6 +129,15 @@ export default createStore({
 
     CACHE_PRODUCTO(state, producto) {
       state.productosCache[producto.id] = producto;
+    },
+
+    // Nuevas mutaciones para manejar productos destacados y descuentos
+    SET_PRODUCTOS_DESTACADOS(state, productos) {
+      state.productosDestacados = productos;
+    },
+
+    SET_PRODUCTOS_CON_DESCUENTO(state, productos) {
+      state.productosConDescuento = productos;
     }
   },
   
@@ -149,7 +161,7 @@ export default createStore({
 
     // Categorías
     async cargarCategorias({ commit, state }) {
-      if (state.categorias.length > 0) return; // Cache
+      if (state.categorias.length > 0) return;
 
       commit('SET_CARGANDO', true);
       commit('SET_ERROR', null);
@@ -179,19 +191,25 @@ export default createStore({
           } 
         });
 
-        commit('SET_PRODUCTOS', data.results || []);
+        const productos = data.results || [];
+        commit('SET_PRODUCTOS', productos);
         commit('SET_PAGINACION', {
           currentPage: data.current_page || 1,
           totalPages: data.total_pages || 1,
           totalItems: data.total_items || data.count || 0
         });
 
+        // Generar productos destacados y con descuento
+        const destacados = this._seleccionarDestacados(productos);
+        const conDescuento = this._aplicarDescuentosAleatorios(productos);
+        
+        commit('SET_PRODUCTOS_DESTACADOS', destacados);
+        commit('SET_PRODUCTOS_CON_DESCUENTO', conDescuento);
+
         // Cache productos
-        if (data.results) {
-          data.results.forEach(producto => {
-            commit('CACHE_PRODUCTO', producto);
-          });
-        }
+        productos.forEach(producto => {
+          commit('CACHE_PRODUCTO', producto);
+        });
       } catch (error) {
         commit('SET_ERROR', this._handleError(error));
         throw error;
@@ -201,7 +219,6 @@ export default createStore({
     },
 
     async cargarProductoPorId({ commit, state }, productoId) {
-      // Verificar cache primero
       if (state.productosCache[productoId]) {
         commit('SET_PRODUCTO_ACTUAL', state.productosCache[productoId]);
         return;
@@ -213,7 +230,6 @@ export default createStore({
       try {
         const { data } = await axiosInstance.get(`productos/${productoId}/`);
         
-        // Asegurar que las URLs de imágenes sean completas
         const productoConImagenes = {
           ...data,
           imagen_url: data.imagen ? construirUrlCompleta(data.imagen) : null,
@@ -267,10 +283,9 @@ export default createStore({
       }
     },
 
-    // Método interno para manejo de errores
+    // Métodos internos
     _handleError(error) {
       if (error.response) {
-        // Error de la API
         const { status, data } = error.response;
         
         if (status === 401) {
@@ -281,6 +296,29 @@ export default createStore({
         return data.message || data.detail || `Error ${status}: ${data}`;
       }
       return error.message || 'Error de conexión';
+    },
+
+    // Selecciona 4 productos aleatorios para destacados
+    _seleccionarDestacados(productos) {
+      return [...productos]
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 4);
+    },
+
+    // Aplica descuentos aleatorios y guarda la información
+    _aplicarDescuentosAleatorios(productos) {
+      return [...productos]
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 4)
+        .map(producto => {
+          const descuento = Math.floor(Math.random() * 21) + 10; // 10-30%
+          return {
+            ...producto,
+            descuento_aplicado: descuento,
+            precio_original: producto.precio,
+            precio_con_descuento: Number((producto.precio * (1 - descuento / 100)).toFixed(2))
+          };
+        });
     }
   }
 });

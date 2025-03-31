@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     
     # Django REST Framework
     'rest_framework',
-    'rest_framework_simplejwt',
+    'rest_framework.authtoken',
     'django_filters',
     
     
@@ -57,8 +57,6 @@ INSTALLED_APPS = [
     'usuarios',
     'facturas',
 ]
-
-AUTH_USER_MODEL = 'usuarios.Usuario'
 
 # ==================== MIDDLEWARE ====================
 
@@ -100,14 +98,11 @@ TEMPLATES = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'Pixel_Market',
-        'USER': 'Pixel_Market_Team',  # El nuevo usuario que creaste
-        'PASSWORD': 'usm123',        # La contraseña que asignaste
-        'HOST': 'localhost',         # O la IP del servidor MySQL si está en otra máquina
+        'NAME': 'Pixel_Market_V2',
+        'USER': 'Pixel_Team',
+        'PASSWORD': 'P1x3l_M@rket!',
+        'HOST': 'localhost',
         'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        }
     }
 }
 
