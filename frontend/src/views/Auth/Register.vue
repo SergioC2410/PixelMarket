@@ -25,23 +25,31 @@
   <!-- Contenedor del registro -->
   <div class="register-wrapper">
     <div class="register-container" :class="{ 'shake': hasError }">
-      <!-- Logo de la empresa -->
-      <div class="logo-container">
-        <img src="@/assets/Logo/logo.png" alt="PixelMarket Logo" class="logo">
-      </div>
-
       <h2 class="animated-title">Crear nueva cuenta</h2>
       
       <form @submit.prevent="handleRegister" class="register-form animated-form">
         <!-- Campos básicos -->
         <div class="input-group" :class="{ 'input-error': hasError }">
-          <label for="name">Nombre completo:</label>
+          <label for="name">Nombre:</label>
           <input
             type="text"
             id="name"
             v-model.trim="name"
             required
-            placeholder="Tu nombre completo"
+            placeholder="Tu nombre"
+            class="animated-input"
+          >
+          <span class="input-focus-border"></span>
+        </div>
+
+        <div class="input-group" :class="{ 'input-error': hasError }">
+          <label for="lastname">Apellido:</label>
+          <input
+            type="text"
+            id="lastname"
+            v-model.trim="lastname"
+            required
+            placeholder="Tu apellido"
             class="animated-input"
           >
           <span class="input-focus-border"></span>
@@ -84,72 +92,6 @@
             placeholder="+58 123 456 78 90"
             class="animated-input"
             @input="validatePhone"
-          >
-          <span class="input-focus-border"></span>
-        </div>
-
-        <!-- Selector de país -->
-        <div class="input-group" :class="{ 'input-error': hasError }">
-          <label for="country">País:</label>
-          <select
-            id="country"
-            v-model="selectedCountry"
-            required
-            class="animated-input method-select"
-            @change="selectedCity = ''"
-          >
-            <option value="" disabled selected>Selecciona tu país</option>
-            <option 
-              v-for="(country, index) in Object.keys(countries)" 
-              :key="'country-'+index" 
-              :value="country"
-            >
-              {{ country }}
-            </option>
-          </select>
-          <span class="input-focus-border"></span>
-        </div>
-
-        <!-- Selector de ciudad -->
-        <div 
-          class="input-group" 
-          :class="{ 'input-error': hasError }"
-          v-if="selectedCountry"
-        >
-          <label for="city">Ciudad:</label>
-          <select
-            id="city"
-            v-model="selectedCity"
-            required
-            class="animated-input method-select"
-          >
-            <option value="" disabled selected>Selecciona tu ciudad</option>
-            <option 
-              v-for="(city, index) in countries[selectedCountry]" 
-              :key="'city-'+index" 
-              :value="city"
-            >
-              {{ city }}
-            </option>
-            <option value="other">Otra ciudad</option>
-          </select>
-          <span class="input-focus-border"></span>
-        </div>
-
-        <!-- Campo para otra ciudad -->
-        <div 
-          class="input-group" 
-          :class="{ 'input-error': hasError }"
-          v-if="selectedCity === 'other'"
-        >
-          <label for="other-city">Especifica tu ciudad:</label>
-          <input
-            type="text"
-            id="other-city"
-            v-model.trim="otherCity"
-            required
-            placeholder="Nombre de tu ciudad"
-            class="animated-input"
           >
           <span class="input-focus-border"></span>
         </div>
@@ -258,12 +200,10 @@ export default {
   data() {
     return {
       name: '',
+      lastname: '',
       cedula: '',
       email: '',
       phone: '',
-      selectedCountry: '',
-      selectedCity: '',
-      otherCity: '',
       password: '',
       confirmPassword: '',
       errorMessage: '',
@@ -280,16 +220,7 @@ export default {
         color: `hsl(${Math.random() * 60 + 200}, 70%, 60%)`,
         opacity: Math.random() * 0.5 + 0.2,
         speed: Math.random() * 0.5 + 0.2
-      })),
-      countries: {
-        'Colombia': ['Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Cartagena', 'Bucaramanga', 'Pereira'],
-        'México': ['Ciudad de México', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana', 'León', 'Querétaro'],
-        'Argentina': ['Buenos Aires', 'Córdoba', 'Rosario', 'Mendoza', 'San Miguel de Tucumán', 'La Plata'],
-        'España': ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Zaragoza', 'Málaga', 'Murcia'],
-        'Chile': ['Santiago', 'Valparaíso', 'Concepción', 'La Serena', 'Antofagasta', 'Puerto Montt'],
-        'Perú': ['Lima', 'Arequipa', 'Trujillo', 'Chiclayo', 'Piura', 'Iquitos'],
-        'Estados Unidos': ['Nueva York', 'Los Ángeles', 'Chicago', 'Houston', 'Phoenix', 'Filadelfia']
-      }
+      }))
     }
   },
   computed: {
@@ -308,12 +239,6 @@ export default {
     },
     hasSpecialChar() {
       return /[!@#$%^&*]/.test(this.password)
-    },
-    location() {
-      if (this.selectedCity === 'other') {
-        return this.otherCity;
-      }
-      return this.selectedCity;
     }
   },
   methods: {
@@ -379,7 +304,13 @@ export default {
     
     validateForm() {
       if (!this.name) {
-        this.errorMessage = 'El nombre completo es obligatorio'
+        this.errorMessage = 'El nombre es obligatorio'
+        this.hasError = true
+        return false
+      }
+      
+      if (!this.lastname) {
+        this.errorMessage = 'El apellido es obligatorio'
         this.hasError = true
         return false
       }
@@ -389,24 +320,6 @@ export default {
       }
       
       if (!this.validatePhone()) {
-        return false
-      }
-      
-      if (!this.selectedCountry) {
-        this.errorMessage = 'Debes seleccionar un país'
-        this.hasError = true
-        return false
-      }
-      
-      if (!this.selectedCity) {
-        this.errorMessage = 'Debes seleccionar una ciudad'
-        this.hasError = true
-        return false
-      }
-      
-      if (this.selectedCity === 'other' && !this.otherCity) {
-        this.errorMessage = 'Debes especificar tu ciudad'
-        this.hasError = true
         return false
       }
       
@@ -454,11 +367,10 @@ export default {
       setTimeout(() => {
         console.log('Datos de registro:', {
           name: this.name,
+          lastname: this.lastname,
           cedula: this.cedula,
           email: this.email,
           phone: this.phone,
-          country: this.selectedCountry,
-          city: this.location,
           password: this.password
         });
 
@@ -614,19 +526,6 @@ export default {
 
 .register-container.shake {
   animation: shake 0.6s;
-}
-
-/* Logo y nombre de la empresa */
-.logo-container {
-  text-align: center;
-  margin-bottom: 1.5rem;
-}
-
-.logo {
-  width: 320px;
-  height: 388px;
-  margin-bottom: -10rem;
-  margin-top: -10rem;
 }
 
 /* Título animado */
@@ -962,26 +861,12 @@ label {
   .register-container {
     padding: 2rem;
   }
-  
-  .logo {
-    width: 280px;
-    height: 340px;
-    margin-bottom: -8rem;
-    margin-top: -8rem;
-  }
 }
 
 @media (max-width: 480px) {
   .register-container {
     padding: 1.5rem;
     width: 95%;
-  }
-  
-  .logo {
-    width: 240px;
-    height: 290px;
-    margin-bottom: -6rem;
-    margin-top: -6rem;
   }
   
   .animated-input {
