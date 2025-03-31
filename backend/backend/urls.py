@@ -13,21 +13,7 @@ from django.urls import path, include
 from django.http import JsonResponse
 from django.conf import settings
 from django.conf.urls.static import static
-from drf_yasg.views import get_schema_view
-from drf_yasg import openapi
 from rest_framework import permissions
-
-# Configuración para documentación API
-schema_view = get_schema_view(
-    openapi.Info(
-        title="API PixelMarket",
-        default_version='v1',
-        description="Documentación de la API para el e-commerce PixelMarket",
-        contact=openapi.Contact(email="soporte@pixelmarket.com"),
-    ),
-    public=True,
-    permission_classes=(permissions.AllowAny,),
-)
 
 def home(request):
     """Endpoint raíz que muestra información básica de la API"""
@@ -49,10 +35,7 @@ urlpatterns = [
     # Panel de administración
     path('admin/', admin.site.urls),
     
-    # Documentación API
-    path('api/docs/', schema_view.with_ui('swagger', cache_timeout=0), name='api-docs'),
-    path('api/redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='api-redoc'),
-    
+
     # Apps principales
     path('api/', include('productos.urls')),
     path('api/', include('pedidos.urls')),

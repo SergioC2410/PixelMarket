@@ -17,7 +17,7 @@
         <div 
           class="accordion-header" 
           @click="toggleAccordion(method.id)"
-          aria-expanded="activeMethod === method.id"
+          :aria-expanded="!!(activeMethod === method.id)"
           :aria-controls="`method-${method.id}-content`"
         >
           <img 
