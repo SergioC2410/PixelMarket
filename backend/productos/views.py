@@ -67,7 +67,7 @@ class ImagenProductoViewSet(viewsets.ModelViewSet):
 def categoria_list(request):
     if request.method == 'GET':
         categorias = Categoria.objects.all()
-        serializer = CategoriaSerializer(categorias, many=True)
+        serializer = CategoriaSerializer(categorias, many=True, context={'request': request})  
         return Response(serializer.data)
     
     elif request.method == 'POST':

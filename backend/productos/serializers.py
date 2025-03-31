@@ -1,25 +1,45 @@
 from rest_framework import serializers
 from .models import Producto, Categoria, ImagenProducto
+from django.conf import settings
 
 class CategoriaSerializer(serializers.ModelSerializer):
     cantidad_productos = serializers.IntegerField(read_only=True)
     imagen_url = serializers.SerializerMethodField()
+    icono_url = serializers.SerializerMethodField()  
+
 
     class Meta:
         model = Categoria
         fields = [
             'id', 'nombre', 'descripcion', 'slug', 
-            'activo', 'imagen', 'imagen_url', 'cantidad_productos'
+            'activo', 'imagen', 'imagen_url', 'cantidad_productos',
+            'icono', 'icono_url', 'orden', 'visible',  # Campos agregados
+            'fecha_creacion', 'fecha_actualizacion'    # Campos adicionales de BD
         ]
         read_only_fields = ['slug', 'cantidad_productos']
         extra_kwargs = {
-            'imagen': {'write_only': True}
+            'imagen': {'write_only': True},
+            'icono': {'write_only': True}  # Si el campo se escribe directamente
         }
+
+
+    def get_icono_url(self, obj):
+        if not obj.icono:
+            return None
+        
+        # Verificar si el request está en el contexto
+        if 'request' in self.context:
+            return self.context['request'].build_absolute_uri(settings.STATIC_URL + obj.icono)
+        else:
+            # Usar STATIC_URL directamente si no hay request
+            return f"{settings.STATIC_URL}{obj.icono}"
+
 
     def get_imagen_url(self, obj):
         if obj.imagen and hasattr(obj.imagen, 'url'):
             return self.context['request'].build_absolute_uri(obj.imagen.url)
         return None
+
 
     def validate_nombre(self, value):
         if not value.strip():

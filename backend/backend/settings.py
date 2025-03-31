@@ -138,12 +138,9 @@ USE_TZ = True  # Usa zona horaria (recomendado)
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # Directorio principal de static
-    # Elimina la línea del backend/static si no existe
-]
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')] 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  
 
 # ==================== DJANGO REST FRAMEWORK ====================
 
@@ -176,7 +173,7 @@ REST_FRAMEWORK = {
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8080",
+    "http://localhost:8080",  
     "http://127.0.0.1:8080",
 ]
 CORS_ALLOW_CREDENTIALS = True
