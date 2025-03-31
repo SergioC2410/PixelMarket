@@ -11,6 +11,13 @@ class Categoria(models.Model):
     nombre = models.CharField(max_length=100, unique=True, verbose_name="Nombre de categoría")
     descripcion = models.TextField(blank=True, verbose_name="Descripción")
     slug = models.SlugField(unique=True, blank=True, max_length=110)
+    # Nuevo campo para el icono (ruta estática)
+    icono = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Icono (ruta estática)",
+        help_text="Ruta del archivo en el directorio static. Ej: icons/categoria.png"
+    )
     activo = models.BooleanField(default=True, verbose_name="Activo")
     imagen = models.ImageField(
         upload_to='categorias/%Y/%m/%d/',
@@ -18,7 +25,18 @@ class Categoria(models.Model):
         null=True,
         verbose_name="Imagen de categoría"
     )
-
+    # Campos adicionales de la BD (si son necesarios)
+    orden = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Orden de visualización",
+        help_text="Determina el orden de aparición en listados"
+    )
+    visible = models.BooleanField(
+        default=True,
+        verbose_name="Visible en frontend"
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
     class Meta:
         verbose_name = "Categoría"
         verbose_name_plural = "Categorías"
