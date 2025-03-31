@@ -31,20 +31,22 @@
         </div>
         
         <!-- Contenido desplegable del acordeón -->
-        <div 
-          v-show="activeMethod === method.id" 
-          class="accordion-content"
-          :id="`method-${method.id}-content`"
-        >
-          <p class="method-description">{{ method.description }}</p>
-          <button 
-            @click="selectMethod(method)" 
-            class="select-btn"
-            aria-label="Seleccionar este método de pago"
+        <transition name="slide-fade">
+          <div 
+            v-show="activeMethod === method.id" 
+            class="accordion-content"
+            :id="`method-${method.id}-content`"
           >
-            Seleccionar
-          </button>
-        </div>
+            <p class="method-description">{{ method.description }}</p>
+            <button 
+              @click="selectMethod(method)" 
+              class="select-btn"
+              aria-label="Seleccionar este método de pago"
+            >
+              Seleccionar
+            </button>
+          </div>
+        </transition>
       </div>
     </div>
   </div>
@@ -55,7 +57,7 @@ export default {
   name: 'PaymentMethods',
   data() {
     return {
-      activeMethod: null, // Método activo actualmente
+      activeMethod: null,
       paymentMethods: [
         {
           id: 1,
@@ -85,59 +87,54 @@ export default {
     };
   },
   methods: {
-    /**
-     * Alterna la visibilidad del contenido del acordeón
-     * @param {number} methodId - ID del método de pago
-     */
     toggleAccordion(methodId) {
       this.activeMethod = this.activeMethod === methodId ? null : methodId;
     },
-    
-    /**
-     * Maneja la selección de un método de pago
-     * @param {Object} method - Método de pago seleccionado
-     */
     selectMethod(method) {
-      // Emite evento para que el componente padre maneje la selección
       this.$emit('method-selected', method);
-      
-      // Feedback visual (opcional, podría reemplazarse por notificación)
-      console.log(`Método seleccionado: ${method.name}`);
     },
   },
 };
 </script>
 
 <style scoped>
-/* Variables CSS para fácil mantenimiento */
+/* Variables CSS */
 :root {
-  --payment-primary: #007bff;
-  --payment-primary-hover: #0056b3;
+  --payment-primary: #4a6bff;
+  --payment-primary-hover: #3a56d4;
   --payment-bg: #ffffff;
   --payment-border: #e0e0e0;
-  --payment-text: #333333;
-  --payment-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  --payment-text: #2d3748;
+  --payment-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --payment-shadow-hover: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --payment-shadow-active: 0 4px 6px rgba(74, 107, 255, 0.2);
   --transition-speed: 0.3s;
-  --border-radius: 10px;
+  --border-radius: 12px;
 }
 
 /* Contenedor principal */
 .payment-methods {
-  padding: 1.5rem;
-  background-color: var(--payment-bg);
+  padding: 2rem;
+  background-color: #ffffff;
   border-radius: var(--border-radius);
   max-width: 600px;
   margin: 2rem auto;
-  box-shadow: var(--payment-shadow);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  transition: all var(--transition-speed) ease;
+}
+
+.payment-methods:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
 }
 
 /* Título */
 .payment-title {
   text-align: center;
   margin-bottom: 2rem;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   color: var(--payment-text);
-  font-weight: 600;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 /* Acordeón */
@@ -154,24 +151,36 @@ export default {
   border-radius: var(--border-radius);
   overflow: hidden;
   transition: all var(--transition-speed) ease;
+  box-shadow: var(--payment-shadow);
+}
+
+.accordion-item:hover {
+  box-shadow: var(--payment-shadow-hover);
+  transform: translateY(-2px);
 }
 
 .accordion-item.is-active {
   border-color: var(--payment-primary);
+  box-shadow: var(--payment-shadow-active);
 }
 
 /* Encabezado del acordeón */
 .accordion-header {
   display: flex;
   align-items: center;
-  padding: 1rem;
+  padding: 1.25rem;
   cursor: pointer;
-  transition: background-color var(--transition-speed) ease;
+  transition: all var(--transition-speed) ease;
   position: relative;
+  background-color: var(--payment-bg);
 }
 
 .accordion-header:hover {
-  background-color: #f5f5f5;
+  background-color: #f8f9fa;
+}
+
+.accordion-item.is-active .accordion-header {
+  background-color: #f0f4ff;
 }
 
 /* Indicador de estado (+/−) */
@@ -179,34 +188,54 @@ export default {
   margin-left: auto;
   font-weight: bold;
   font-size: 1.2rem;
+  color: #718096;
+  transition: all var(--transition-speed) ease;
+}
+
+.accordion-item.is-active .accordion-indicator {
+  color: var(--payment-primary);
+  transform: rotate(180deg);
 }
 
 /* Icono del método de pago */
 .method-icon {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   margin-right: 1rem;
   object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  transition: all var(--transition-speed) ease;
+}
+
+.accordion-item.is-active .method-icon {
+  filter: drop-shadow(0 2px 4px rgba(74, 107, 255, 0.2));
 }
 
 /* Nombre del método */
 .method-name {
-  font-weight: 500;
+  font-weight: 600;
   text-transform: capitalize;
+  color: var(--payment-text);
+  transition: all var(--transition-speed) ease;
+}
+
+.accordion-item.is-active .method-name {
+  color: var(--payment-primary);
 }
 
 /* Contenido del acordeón */
 .accordion-content {
-  padding: 1rem;
-  border-top: 1px solid var(--payment-border);
-  animation: fadeIn var(--transition-speed) ease;
+  padding: 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  background-color: #f8f9fa;
 }
 
 /* Descripción del método */
 .method-description {
-  margin-bottom: 1rem;
-  color: #555;
-  line-height: 1.5;
+  margin-bottom: 1.5rem;
+  color: #4a5568;
+  line-height: 1.6;
+  font-size: 0.95rem;
 }
 
 /* Botón de selección */
@@ -216,38 +245,107 @@ export default {
   background-color: var(--payment-primary);
   color: white;
   border: none;
-  padding: 0.75rem;
-  border-radius: calc(var(--border-radius) / 2);
+  padding: 0.85rem;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color var(--transition-speed) ease;
-  font-weight: 500;
+  transition: all var(--transition-speed) ease;
+  font-weight: 600;
   text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .select-btn:hover {
   background-color: var(--payment-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.select-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Animaciones */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
 }
 
-/* Mejoras de accesibilidad */
-[aria-expanded="true"] .accordion-indicator {
-  color: var(--payment-primary);
+.slide-fade-leave-active {
+  transition: all 0.2s cubic-bezier(1, 0.5, 0.8, 1);
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+/* Efecto de elevación al pasar el mouse */
+.hover-lift {
+  transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
 /* Responsive */
+@media (max-width: 768px) {
+  .payment-methods {
+    padding: 1.5rem;
+    margin: 1.5rem auto;
+  }
+  
+  .payment-title {
+    font-size: 1.5rem;
+  }
+  
+  .accordion-header {
+    padding: 1rem;
+  }
+  
+  .accordion-content {
+    padding: 1rem;
+  }
+}
+
 @media (max-width: 480px) {
   .payment-methods {
     padding: 1rem;
     margin: 1rem auto;
+    border-radius: 8px;
   }
   
-  .accordion-header {
+  .payment-title {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 1.75rem;
+  color: var(--payment-text);
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* Nueva propiedad para sombra permanente */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  display: inline-block;
+  background-color: var(--payment-bg);
+  /* Centrar el título con sombra */
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+  
+  .method-icon {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .select-btn {
     padding: 0.75rem;
+    font-size: 0.9rem;
   }
 }
 </style>

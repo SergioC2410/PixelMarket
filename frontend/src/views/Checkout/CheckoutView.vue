@@ -1,7 +1,13 @@
 <template>
   <div class="cart-container">
+    <!-- Mensaje cuando no hay productos -->
+    <div v-if="cartItems.length === 0" class="empty-cart-message">
+      <h2>No hay productos en tu carrito</h2>
+      <p>¡Explora nuestros productos y añade algunos a tu carrito!</p>
+    </div>
+
     <!-- Listado de productos -->
-    <div class="item-list">
+    <div class="item-list" v-if="cartItems.length > 0">
       <div v-for="item in cartItems" :key="item.id" class="cart-item">
         <img :src="item.image" :alt="item.name" class="product-image" />
         <div class="item-details">
@@ -28,7 +34,7 @@
       </div>
     </div>
     <!-- Resumen de compra -->
-    <div class="checkout-summary">
+    <div class="checkout-summary" v-if="cartItems.length > 0">
       <h2>Resumen de Pedido</h2>
       <div class="summary-row">
         <span class="summary-label">Tasa de cambio:</span>
@@ -54,9 +60,9 @@
         <span class="summary-label">Total:</span>
         <span class="summary-value">BS.F: {{ formatCurrency(totalWithDiscount) }} | Dólares: {{ formatCurrencyUSD(totalWithDiscount) }}</span>
       </div>
-      <router-link to="/metodo-de-pago" class="checkout-btn">
-  Finalizar Compra
-</router-link>
+      <button @click="validateCheckout" class="checkout-btn">
+        Finalizar Compra
+      </button>
     </div>
   </div>
 </template>
@@ -67,24 +73,7 @@ import axios from 'axios';
 export default {
   data() {
     return {
-      cartItems: [
-        { 
-          id: 1, 
-          name: 'Producto A', 
-          price: 1000, 
-          quantity: 1, 
-          image: 'https://via.placeholder.com/120', // Imagen genérica
-          discountPercentage: 10 
-        },
-        { 
-          id: 2, 
-          name: 'Producto B', 
-          price: 2000, 
-          quantity: 2, 
-          image: 'https://via.placeholder.com/120?text=Producto+B', 
-          discountPercentage: 5 
-        }
-      ],
+      cartItems: [], // Inicializamos vacío para probar el mensaje
       shippingCost: 500,
       taxRate: 0.16,
       exchangeRate: 1, // Inicializamos en 1, se actualizará con la API
@@ -139,22 +128,49 @@ export default {
     removeItem(item) {
       this.cartItems = this.cartItems.filter(i => i.id !== item.id);
     },
-    proceedToCheckout() {
-      this.$router.push({ name: 'metodo-de-pago' });
+    validateCheckout() {
+      if (this.cartItems.length === 0) {
+        alert('No hay productos en tu carrito. Por favor, añade al menos un producto para continuar.');
+        return;
+      }
+      this.$router.push({ name: 'MetodoPago' });
     },
     async fetchExchangeRate() {
-  try {
-    const apiKey = '486f0d2b81e7c30a7340fb24'; // Tu clave API de ExchangeRate-API
-    const response = await axios.get(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`);
-    this.exchangeRate = response.data.conversion_rates.VES; // Obtener la tasa de cambio USD a VES
-  } catch (error) {
-    console.error('Error al obtener el tipo de cambio:', error);
-    this.exchangeRate = 66.78; // Valor por defecto en caso de error
-  }
-}
+      try {
+        const apiKey = '486f0d2b81e7c30a7340fb24'; // Tu clave API de ExchangeRate-API
+        const response = await axios.get(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`);
+        this.exchangeRate = response.data.conversion_rates.VES; // Obtener la tasa de cambio USD a VES
+      } catch (error) {
+        console.error('Error al obtener el tipo de cambio:', error);
+        this.exchangeRate = 66.78; // Valor por defecto en caso de error
+      }
+    }
   },
   mounted() {
     this.fetchExchangeRate(); // Llamar a la API al cargar el componente
+    
+    // Para probar el mensaje de carrito vacío, dejamos cartItems vacío
+    // Si quieres ver el carrito con productos, descomenta las siguientes líneas:
+    
+    this.cartItems = [
+      { 
+        id: 1, 
+        name: 'Producto A', 
+        price: 1000, 
+        quantity: 1, 
+        image: 'https://via.placeholder.com/120',
+        discountPercentage: 10 
+      },
+      { 
+        id: 2, 
+        name: 'Producto B', 
+        price: 2000, 
+        quantity: 2, 
+        image: 'https://via.placeholder.com/120?text=Producto+B', 
+        discountPercentage: 5 
+      }
+    ];
+    
   }
 };
 </script>
@@ -166,6 +182,28 @@ export default {
   gap: 2rem;
   padding: 2rem;
   background-color: #f0f8ff;
+  min-height: 70vh;
+  position: relative;
+}
+
+.empty-cart-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  width: 100%;
+}
+
+.empty-cart-message h2 {
+  font-size: 2rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+.empty-cart-message p {
+  font-size: 1.2rem;
+  color: #888;
 }
 
 .cart-item {
@@ -272,9 +310,15 @@ export default {
   text-decoration-line: none;
   justify-content: center;
   align-items: center;
+  font-size: 1rem;
 }
 
 .checkout-btn:hover {
   background-color: #0056b3;
+}
+
+.checkout-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 </style>

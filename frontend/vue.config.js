@@ -1,11 +1,8 @@
 const { defineConfig } = require('@vue/cli-service')
-module.exports = defineConfig({
-  transpileDependencies: true
-})
+const path = require('path')
 
-const path = require('path');
 module.exports = defineConfig({
-  transpileDependencies: true,
+  transpileDependencies: [], // Debe ser un array, no un booleano
   configureWebpack: {
     resolve: {
       alias: {
@@ -13,4 +10,4 @@ module.exports = defineConfig({
       }
     }
   }
-});
+})
