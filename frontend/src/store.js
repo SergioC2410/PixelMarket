@@ -32,6 +32,42 @@ const crearFormData = (datos) => {
   return formData;
 };
 
+// Funciones helper
+const _handleError = (error, dispatch) => {
+  if (error.response) {
+    const { status, data } = error.response;
+    
+    if (status === 401) {
+      dispatch('logout');
+      return 'Sesión expirada. Por favor ingrese nuevamente.';
+    }
+    
+    return data.message || data.detail || `Error ${status}: ${data}`;
+  }
+  return error.message || 'Error de conexión';
+};
+
+const _seleccionarDestacados = (productos) => {
+  return [...productos]
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 4);
+};
+
+const _aplicarDescuentosAleatorios = (productos) => {
+  return [...productos]
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 4)
+    .map(producto => {
+      const descuento = Math.floor(Math.random() * 21) + 10; // 10-30%
+      return {
+        ...producto,
+        descuento_aplicado: descuento,
+        precio_original: producto.precio,
+        precio_con_descuento: Number((producto.precio * (1 - descuento / 100)).toFixed(2))
+      };
+    });
+};
+
 export default createStore({
   state: {
     token: localStorage.getItem('token') || null,
@@ -47,7 +83,6 @@ export default createStore({
       totalItems: 0,
       itemsPerPage: 10
     },
-    // Nuevos estados para manejar descuentos y destacados
     productosDestacados: [],
     productosConDescuento: []
   },
@@ -60,8 +95,6 @@ export default createStore({
     ultimoError: (state) => state.error,
     datosPaginacion: (state) => state.paginacion,
     estaAutenticado: (state) => !!state.token,
-
-    // Nuevos getters
     productosDestacados: (state) => state.productosDestacados,
     productosConDescuento: (state) => state.productosConDescuento,
 
@@ -131,7 +164,6 @@ export default createStore({
       state.productosCache[producto.id] = producto;
     },
 
-    // Nuevas mutaciones para manejar productos destacados y descuentos
     SET_PRODUCTOS_DESTACADOS(state, productos) {
       state.productosDestacados = productos;
     },
@@ -142,14 +174,13 @@ export default createStore({
   },
   
   actions: {
-    // Autenticación
     async login({ commit }, credenciales) {
       try {
         const { data } = await axiosInstance.post('auth/login/', credenciales);
         commit('SET_TOKEN', data.token);
         return true;
       } catch (error) {
-        commit('SET_ERROR', error.response?.data?.message || 'Error de autenticación');
+        commit('SET_ERROR', _handleError(error, this.dispatch));
         return false;
       }
     },
@@ -159,8 +190,7 @@ export default createStore({
       commit('SET_PRODUCTO_ACTUAL', null);
     },
 
-    // Categorías
-    async cargarCategorias({ commit, state }) {
+    async cargarCategorias({ commit, state, dispatch }) {
       if (state.categorias.length > 0) return;
 
       commit('SET_CARGANDO', true);
@@ -170,15 +200,14 @@ export default createStore({
         const { data } = await axiosInstance.get('categorias/');
         commit('SET_CATEGORIAS', data);
       } catch (error) {
-        commit('SET_ERROR', this._handleError(error));
+        commit('SET_ERROR', _handleError(error, dispatch));
         throw error;
       } finally {
         commit('SET_CARGANDO', false);
       }
     },
 
-    // Productos
-    async cargarProductos({ commit, state }, params = {}) {
+    async cargarProductos({ commit, state, dispatch }, params = {}) {
       commit('SET_CARGANDO', true);
       commit('SET_ERROR', null);
       
@@ -199,26 +228,24 @@ export default createStore({
           totalItems: data.total_items || data.count || 0
         });
 
-        // Generar productos destacados y con descuento
-        const destacados = this._seleccionarDestacados(productos);
-        const conDescuento = this._aplicarDescuentosAleatorios(productos);
+        const destacados = _seleccionarDestacados(productos);
+        const conDescuento = _aplicarDescuentosAleatorios(productos);
         
         commit('SET_PRODUCTOS_DESTACADOS', destacados);
         commit('SET_PRODUCTOS_CON_DESCUENTO', conDescuento);
 
-        // Cache productos
         productos.forEach(producto => {
           commit('CACHE_PRODUCTO', producto);
         });
       } catch (error) {
-        commit('SET_ERROR', this._handleError(error));
+        commit('SET_ERROR', _handleError(error, dispatch));
         throw error;
       } finally {
         commit('SET_CARGANDO', false);
       }
     },
 
-    async cargarProductoPorId({ commit, state }, productoId) {
+    async cargarProductoPorId({ commit, state, dispatch }, productoId) {
       if (state.productosCache[productoId]) {
         commit('SET_PRODUCTO_ACTUAL', state.productosCache[productoId]);
         return;
@@ -242,14 +269,14 @@ export default createStore({
         commit('SET_PRODUCTO_ACTUAL', productoConImagenes);
         commit('CACHE_PRODUCTO', productoConImagenes);
       } catch (error) {
-        commit('SET_ERROR', this._handleError(error));
+        commit('SET_ERROR', _handleError(error, dispatch));
         throw error;
       } finally {
         commit('SET_CARGANDO', false);
       }
     },
 
-    async crearProducto({ commit }, productoData) {
+    async crearProducto({ commit, dispatch }, productoData) {
       commit('SET_CARGANDO', true);
       commit('SET_ERROR', null);
       
@@ -259,14 +286,14 @@ export default createStore({
         commit('AGREGAR_PRODUCTO', data);
         return data;
       } catch (error) {
-        commit('SET_ERROR', this._handleError(error));
+        commit('SET_ERROR', _handleError(error, dispatch));
         throw error;
       } finally {
         commit('SET_CARGANDO', false);
       }
     },
 
-    async actualizarProducto({ commit }, { id, datos }) {
+    async actualizarProducto({ commit, dispatch }, { id, datos }) {
       commit('SET_CARGANDO', true);
       commit('SET_ERROR', null);
       
@@ -276,49 +303,11 @@ export default createStore({
         commit('ACTUALIZAR_PRODUCTO', data);
         return data;
       } catch (error) {
-        commit('SET_ERROR', this._handleError(error));
+        commit('SET_ERROR', _handleError(error, dispatch));
         throw error;
       } finally {
         commit('SET_CARGANDO', false);
       }
-    },
-
-    // Métodos internos
-    _handleError(error) {
-      if (error.response) {
-        const { status, data } = error.response;
-        
-        if (status === 401) {
-          this.dispatch('logout');
-          return 'Sesión expirada. Por favor ingrese nuevamente.';
-        }
-        
-        return data.message || data.detail || `Error ${status}: ${data}`;
-      }
-      return error.message || 'Error de conexión';
-    },
-
-    // Selecciona 4 productos aleatorios para destacados
-    _seleccionarDestacados(productos) {
-      return [...productos]
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 4);
-    },
-
-    // Aplica descuentos aleatorios y guarda la información
-    _aplicarDescuentosAleatorios(productos) {
-      return [...productos]
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 4)
-        .map(producto => {
-          const descuento = Math.floor(Math.random() * 21) + 10; // 10-30%
-          return {
-            ...producto,
-            descuento_aplicado: descuento,
-            precio_original: producto.precio,
-            precio_con_descuento: Number((producto.precio * (1 - descuento / 100)).toFixed(2))
-          };
-        });
     }
   }
 });
