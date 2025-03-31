@@ -101,10 +101,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'Pixel_Market',
-        'USER': 'Pixel_Market',
-        'PASSWORD': 'pixelmarket1',
-        'HOST': 'localhost',
+        'USER': 'Pixel_Market_Team',  # El nuevo usuario que creaste
+        'PASSWORD': 'usm123',        # La contraseña que asignaste
+        'HOST': 'localhost',         # O la IP del servidor MySQL si está en otra máquina
         'PORT': '3306',
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
     }
 }
 
