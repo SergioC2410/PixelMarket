@@ -1,24 +1,23 @@
 import { createRouter, createWebHistory } from 'vue-router';
 
 // Importar vistas
-import HomeView from '@/views/Home/HomeView.vue'; // Vista principal
-import LoginView from '@/views/Auth/LoginView.vue'; // Vista de inicio de sesión
-import ProductosView from '@/views/Productos/ProductosView.vue'; // Vista de productos
-import CheckoutView from '@/views/Checkout/CheckoutView.vue'; // Vista de checkout
-import DetalleProducto from '@/views/Productos/DetalleProducto.vue'; // Vista de detalle de producto
-import CategoriasView from '@/views/Productos/CategoriasView.vue'; // Vista de categorías
-import Register from '@/views/Auth/Register.vue'; // Vista de registro
-import Contraseña from '@/views/Auth/Contraseña.vue'; // Vista de recuperación de contraseña
-import MetodoPago from '@/components/MetodoPago.vue'; // Componente de método de pago
-import SearchResults from '@/components/SearchResults.vue'; // Componente de resultados de búsqueda
-import SearchBar from '@/components/SearchBar.vue'; // Componente de barra de búsqueda
+import HomeView from '@/views/Home/HomeView.vue';
+import LoginView from '@/views/Auth/LoginView.vue';
+import ProductosView from '@/views/Productos/ProductosView.vue';
+import CheckoutView from '@/views/Checkout/CheckoutView.vue';
+import DetalleProducto from '@/views/Productos/DetalleProducto.vue';
+import CategoriasView from '@/views/Productos/CategoriasView.vue';
+import Register from '@/views/Auth/Register.vue';
+import Contraseña from '@/views/Auth/Contraseña.vue';
+import MetodoPago from '@/components/MetodoPago.vue';
+import SearchResults from '@/components/SearchResults.vue';
 
 // Definir rutas
 const routes = [
   { 
     path: '/', 
     name: 'Home',
-    component: HomeView // Ruta raíz muestra HomeView
+    component: HomeView
   },
   { 
     path: '/login',
@@ -64,12 +63,6 @@ const routes = [
     path: '/search/:query',
     name: 'search',
     component: SearchResults,
-    props: true
-  },
-  {
-    path: '/search/:query',
-    name: 'searchbar',
-    component: SearchBar,
     props: true
   }
 ];

@@ -98,10 +98,10 @@ TEMPLATES = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'Pixel_Market_V2',
+        'NAME': 'pixel_market_v2',
         'USER': 'Pixel_Team',
         'PASSWORD': 'P1x3l_M@rket!',
-        'HOST': 'localhost',
+        'HOST': 'localhost', 
         'PORT': '3306',
     }
 }
@@ -163,13 +163,13 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.MultiPartParser',
         'rest_framework.parsers.FormParser',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'productos.pagination.CustomPagination',
+    'PAGE_SIZE': 10,  # Este será el tamaño por defecto, pero puede cambiarse con page_size
 }
 
 # ==================== CONFIGURACIÓN CORS ====================

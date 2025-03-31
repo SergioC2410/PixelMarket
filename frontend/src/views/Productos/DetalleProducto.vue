@@ -30,6 +30,14 @@
           <div class="product-info">
             <h1>{{ producto.nombre }}</h1>
             
+            <!-- Mostrar descuento si existe -->
+            <div v-if="tieneDescuento" class="discount-badge">
+              <span class="discount-percent">{{ producto.descuento_aplicado }}% OFF</span>
+              <span class="original-price">
+                <s>{{ formatoPrecio(producto.precio_original) }}</s>
+              </span>
+            </div>
+            
             <div class="rating-container">
               <span class="stars">
                 <i v-for="star in 5" :key="star" 
@@ -67,7 +75,7 @@
                 :disabled="producto.stock <= 0 || agregandoAlCarrito"
               >
                 <span class="price">
-                  {{ formatoPrecio(producto.precio_descuento || producto.precio) }}
+                  {{ formatoPrecio(precioFinal) }}
                 </span>
                 <span class="cart-icon">
                   <i class="fas fa-shopping-cart"></i>
@@ -106,7 +114,6 @@
       <div class="additional-info">
         <b-card>
           <b-tabs>
-
             <b-tab title="Reseñas">
               <ValoracionesProducto 
                 :producto-id="producto.id"
@@ -119,6 +126,7 @@
     </template>
   </div>
 </template>
+
 <script>
 import { mapActions, mapGetters, mapState } from 'vuex'
 import ValoracionesProducto from '@/components/ValoracionesProducto.vue'
@@ -135,15 +143,29 @@ export default {
     }
   },
   computed: {
-    ...mapGetters(['productoDetalle', 'estaCargando']),
+    ...mapGetters(['productoDetalle', 'estaCargando', 'productosConDescuento']),
     ...mapState(['error']),
     
     producto() {
-      return this.productoDetalle || {}
+      // Buscar si el producto tiene descuento en el store
+      const productoConDescuento = this.productosConDescuento.find(p => p.id === this.productoDetalle?.id);
+      
+      // Si tiene descuento, mezclar los datos
+      return productoConDescuento || this.productoDetalle || {};
+    },
+    
+    tieneDescuento() {
+      return !!this.producto.descuento_aplicado;
+    },
+    
+    precioFinal() {
+      return this.tieneDescuento 
+        ? this.producto.precio_con_descuento 
+        : this.producto.precio;
     },
     
     cargando() {
-      return this.estaCargando
+      return this.estaCargando;
     },
     
     breadcrumbs() {
@@ -155,47 +177,43 @@ export default {
           to: { name: 'Productos', query: { categoria: this.producto.categoria?.id } }
         },
         { text: this.producto.nombre || 'Detalle', active: true }
-      ]
+      ];
     }
   },
   methods: {
     ...mapActions(['cargarProductoPorId', 'agregarProductoAlCarrito']),
     
-    calcularPorcentajeDescuento(producto) {
-      if (!producto.precio_descuento) return 0
-      return Math.round((1 - producto.precio_descuento / producto.precio) * 100)
-    },
-    
     formatoPrecio(precio) {
       return new Intl.NumberFormat('es-AR', {
         style: 'currency',
         currency: 'ARS'
-      }).format(precio || 0)
+      }).format(precio || 0);
     },
     
     async agregarAlCarrito() {
-      this.agregandoAlCarrito = true
+      this.agregandoAlCarrito = true;
       try {
         await this.agregarProductoAlCarrito({
           productoId: this.producto.id,
-          cantidad: this.cantidad
-        })
+          cantidad: this.cantidad,
+          precioUnitario: this.precioFinal // Enviamos el precio con descuento si aplica
+        });
         this.$bvToast.toast('Producto agregado al carrito', {
           variant: 'success',
           autoHideDelay: 3000
-        })
+        });
       } catch (error) {
         this.$bvToast.toast(error.message, {
           variant: 'danger',
           autoHideDelay: 3000
-        })
+        });
       } finally {
-        this.agregandoAlCarrito = false
+        this.agregandoAlCarrito = false;
       }
     },
     
     recargarProducto() {
-      this.cargarProductoPorId(this.$route.params.id)
+      this.cargarProductoPorId(this.$route.params.id);
     },
     
     actualizarValoraciones({ promedio, cantidad }) {
@@ -203,36 +221,38 @@ export default {
         ...this.producto,
         valoracion_promedio: promedio,
         cantidad_valoraciones: cantidad
-      })
+      });
     },
     
     manejarErrorImagen(event) {
-      event.target.src = this.placeholderImage
+      event.target.src = this.placeholderImage;
     },
+    
     getStarClass(starIndex, rating) {
-    const ratingValue = rating || 0;
-    if (starIndex <= ratingValue) {
-      return 'fas fa-star';
+      const ratingValue = rating || 0;
+      if (starIndex <= ratingValue) {
+        return 'fas fa-star';
+      }
+      if (starIndex - 0.5 <= ratingValue) {
+        return 'fas fa-star-half-alt';
+      }
+      return 'far fa-star';
     }
-    if (starIndex - 0.5 <= ratingValue) {
-      return 'fas fa-star-half-alt';
-    }
-    return 'far fa-star';
-  }
   },
   async created() {
-    await this.cargarProductoPorId(this.$route.params.id)
+    await this.cargarProductoPorId(this.$route.params.id);
   },
   watch: {
     '$route.params.id': {
       handler(newId) {
-        if (newId) this.cargarProductoPorId(newId)
+        if (newId) this.cargarProductoPorId(newId);
       },
       immediate: true
     }
   }
-}
+};
 </script>
+
 
 <style scoped>
 /* Base styles */
@@ -247,7 +267,7 @@ export default {
 /* Container */
 .product-card {
   width: 750px;
-  height: 400px;
+  height: 450px;
   background: white;
   border-radius: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
@@ -312,6 +332,30 @@ h1 {
   font-size: 0.9rem;
 }
 
+/* Descuento */
+.discount-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  animation: fadeIn 0.5s 0.2s ease-out forwards;
+  opacity: 0;
+}
+
+.discount-percent {
+  background-color: #ff4444;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.original-price {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
 /* Stock */
 .stock-container {
   margin: 0.5rem 0;
@@ -330,7 +374,7 @@ h1 {
 }
 
 .stock-badge.in-stock {
-  background: #28a745;
+  background: #151bc5c5;
 }
 
 .stock-badge.out-of-stock {
@@ -365,7 +409,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #28a745;
+  background: #2e28a7;
   color: white;
   border: none;
   border-radius: 8px;
@@ -399,6 +443,9 @@ h1 {
   align-items: center;
   background: rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: white;
 }
 
 .buy-button .cart-icon {
@@ -413,6 +460,7 @@ h1 {
   transform: translateX(-100%);
   opacity: 0;
   transition: all 0.3s ease;
+  font-size: 1.2rem;
 }
 
 .buy-button .buy-text {
@@ -447,7 +495,7 @@ h1 {
 }
 
 .product-image {
-  width: 100%;
+  width: 110%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
@@ -464,7 +512,7 @@ h1 {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(40, 167, 69, 0.95);
+  background: rgba(91, 81, 159, 0.378);
   color: white;
   padding: 1.5rem;
   transform: translateY(100%) rotateX(15deg);
@@ -539,6 +587,17 @@ h1 {
   
   .description {
     padding: 0;
+  }
+
+  .discount-badge {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .buy-button {
+    padding: 10px 16px;
+    font-size: 0.9rem;
   }
 }
 </style>
