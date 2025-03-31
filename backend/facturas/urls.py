@@ -1,14 +1,26 @@
 from django.urls import path
-from . import views  # Importa las vistas de la aplicación 'facturas'
+from . import views
 
-# URL patterns para la aplicación de facturas
+app_name = 'facturas'  # Namespace para referencias inversas
+
 urlpatterns = [
-    # Ruta para listar las facturas
-    path('lista/', views.listar_facturas, name='lista_facturas'),
-
-    # Ruta para generar una factura en PDF a partir de un pedido
-    path('generar/<int:pedido_id>/', views.generar_factura, name='generar_factura'),
-
-    # Ruta para descargar una factura específica en formato PDF
-    path('descargar/<int:factura_id>/', views.descargar_factura_pdf, name='descargar_factura'),
+    # Generación de factura (POST para creación, GET para descarga)
+    path('pedidos/<int:pedido_id>/factura/', 
+        views.generar_factura, 
+        name='generar-factura'),
+    
+    # Listado completo de facturas
+    path('facturas/', 
+        views.listar_facturas, 
+        name='listar-facturas'),
+    
+    # Detalle específico de factura (metadatos JSON)
+    path('facturas/<int:factura_id>/', 
+        views.detalle_factura, 
+        name='detalle-factura'),
+    
+    # Descarga directa de PDF
+    path('facturas/<int:factura_id>/descargar/', 
+        views.descargar_factura_pdf, 
+        name='descargar-factura')
 ]
