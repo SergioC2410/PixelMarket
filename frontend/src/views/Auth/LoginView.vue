@@ -59,7 +59,7 @@
         </div>
 
         <div class="input-group" :class="{ 'input-error': hasError }">
-          <label for="password">Contraseña:</label>
+          <label for="password">Ernesto:</label>
           <input
             type="password"
             id="password"
@@ -122,7 +122,7 @@ export default {
   data() {
     return {
       // ... tus datos existentes ...
-      floatingProducts: Array(8).fill().map((_, i) => ({
+      floatingProducts: Array(10).fill().map((_, i) => ({
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
         size: Math.random() * 80 + 40,
@@ -146,14 +146,16 @@ export default {
   methods: {
     getRandomProductImage(index) {
       const products = [
-        'https://cdn-icons-png.flaticon.com/512/3144/3144456.png', // smartphone
-        'https://cdn-icons-png.flaticon.com/512/3659/3659898.png', // laptop
-        'https://cdn-icons-png.flaticon.com/512/3081/3081985.png', // headphones
-        'https://cdn-icons-png.flaticon.com/512/2933/2933245.png', // t-shirt
-        'https://cdn-icons-png.flaticon.com/512/994/994928.png', // watch
-        'https://cdn-icons-png.flaticon.com/512/869/869869.png', // shoes
-        'https://cdn-icons-png.flaticon.com/512/2753/2753583.png', // camera
-        'https://cdn-icons-png.flaticon.com/512/2936/2936886.png' // bag
+        'https://static.vecteezy.com/system/resources/previews/016/283/734/non_2x/smartphone-cartoon-style-vector.jpg', // smartphone
+        'https://previews.123rf.com/images/larryrains/larryrains1901/larryrains190100027/118556689-laptop-una-ilustración-de-dibujos-animados-de-vector-de-una-computadora-portátil.jpg', // laptop
+        'https://st4.depositphotos.com/11953928/25417/v/450/depositphotos_254173522-stock-illustration-technology-earpod-cartoon.jpg', // headphones
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIyo9Qct5KHX947WsivC2XaC7RnY9-p3pyUw&s', // t-shirt
+        'https://media.istockphoto.com/id/1298405700/es/vector/reloj-marrón-en-la-muñeca-símbolo-de-tiempo-aislado-sobre-fondo-blanco-ilustración.jpg?s=612x612&w=0&k=20&c=bdmaX7Z_qc9bL1YHUhgbqcpzBXU-tOywhG2buWeNMb0=', // watch
+        'https://i.pinimg.com/736x/1b/bd/c7/1bbdc7eae11e8cd58767ae3c658293ec.jpg', // shoes
+        'https://img.freepik.com/vector-premium/icono-camara-dibujos-animados-diseno-plano_387795-125.jpg', // camera
+        'https://previews.123rf.com/images/pandavector/pandavector1609/pandavector160900361/63131449-pesas-de-dibujos-animados-icono-icono-del-deporte-individual-de-la-gran-aptitud-sano-recolección.jpg', // bag
+        'https://i.ebayimg.com/thumbs/images/g/m7AAAOSw5zdm0rXh/s-l1200.jpg',// shirt
+        'https://i.pinimg.com/474x/26/da/00/26da0013f426665d2cd4f29b225ab99a.jpg'// smartphone
       ];
       return products[index % products.length];
     },
@@ -182,7 +184,6 @@ export default {
       
       this.animationFrame = requestAnimationFrame(this.animateFloatingProducts);
     },
-    // ... tus otros métodos ...
   },
   mounted() {
     this.animateFloatingProducts();
@@ -247,12 +248,6 @@ export default {
   animation: float-up 15s infinite linear;
   cursor: pointer;
 }
-
-.bubble:hover {
-  animation-play-state: paused;
-  transform: scale(1.2);
-}
-
 @keyframes float-up {
   0% { transform: translateY(0); }
   100% { transform: translateY(-100vh); }
