@@ -6,13 +6,10 @@ from django.core.exceptions import ValidationError
 
 class Factura(models.Model):
     """
-    Modelo Factura con solución para el error del ID
+    Modelo Factura corregido sin null=True en el campo id
     """
-    # PASO 1: Definir ID como nullable temporalmente (luego remover null=True)
     id = models.AutoField(
         primary_key=True,
-        null=True,  # Temporal para migración
-        blank=True,
         verbose_name='ID'
     )
     
@@ -64,7 +61,7 @@ class Factura(models.Model):
             ultima = Factura.objects.filter(
                 numero_factura__startswith=f'FAC-{año_mes}'
             ).order_by('-numero_factura').first()
-            consecutivo = (int(ultima.numero_factura[-4:]) + 1) if ultima else 1
+            consecutivo = (int(ultima.numero_factura[-4:]) + 1 if ultima else 1)
             self.numero_factura = f"FAC-{año_mes}-{consecutivo:04d}"
         
         if not self.total and hasattr(self.pedido, 'items'):
