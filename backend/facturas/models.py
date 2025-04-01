@@ -151,7 +151,12 @@ class Factura(models.Model):
         """
         # Generar número de factura si no existe
         if not self.numero_factura:
-            self.generar_numero_factura()
+            anio_mes = timezone.now().strftime('%Y%m')
+            ultima = Factura.objects.filter(
+                numero_factura__startswith=f'FAC-{anio_mes}'
+            ).order_by('-numero_factura').first()
+            consecutivo = (int(ultima.numero_factura[-4:]) + 1 if ultima else 1)
+            self.numero_factura = f"FAC-{anio_mes}-{consecutivo:04d}"
         
         # Calcular valores financieros si no están definidos
         if not self.subtotal or not self.iva:

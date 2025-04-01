@@ -233,11 +233,12 @@ export default {
   async created() {
     await this.cargarCategorias();
     await this.filtrarProductos();
-    
+    console.log("Datos del primer producto:", this.todosProductos[0]) 
     // Si viene categoría por URL
     if (this.$route.query.categoria) {
       this.filtroCategoria = parseInt(this.$route.query.categoria);
     }
+
   },
   watch: {
     '$route.query.categoria'(newVal) {
