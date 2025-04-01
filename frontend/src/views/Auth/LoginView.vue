@@ -1,6 +1,6 @@
 <template>
   <!-- Fondo interactivo para ecommerce -->
-  <div class="ecommerce-background">
+   <div class="ecommerce-background">
   </div>
     <!-- Productos flotantes -->
     <div class="floating-products">

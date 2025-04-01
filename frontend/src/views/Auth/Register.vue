@@ -1,26 +1,39 @@
 <template>
-  <!-- Fondo interactivo -->
-  <div class="interactive-background">
-    <!-- Partículas animadas -->
-    <div class="particles">
-      <div v-for="(particle, index) in particles" :key="index" class="particle" 
+  <!-- Fondo interactivo para ecommerce -->
+  <div class="ecommerce-background">
+    <!-- Productos flotantes -->
+    <div class="floating-products">
+      <div v-for="(product, index) in floatingProducts" :key="'product-'+index" class="floating-product" 
            :style="{
-             left: particle.x + 'px',
-             top: particle.y + 'px',
-             width: particle.size + 'px',
-             height: particle.size + 'px',
-             backgroundColor: particle.color,
-             opacity: particle.opacity
+             left: product.x + 'px',
+             top: product.y + 'px',
+             width: product.size + 'px',
+             height: product.size + 'px',
+             transform: 'rotate(' + product.rotation + 'deg)',
+             backgroundImage: 'url(' + product.image + ')',
+             filter: 'drop-shadow(0 5px 15px ' + product.shadow + ')'
            }"></div>
     </div>
     
-    <!-- Olas animadas -->
-    <div class="waves">
-      <div class="wave wave-1"></div>
-      <div class="wave wave-2"></div>
-      <div class="wave wave-3"></div>
+    <!-- Efecto de burbujas de descuento -->
+    <div class="discount-bubbles">
+      <div v-for="(bubble, index) in discountBubbles" :key="'bubble-'+index" class="bubble" 
+           :style="{
+             left: bubble.x + 'px',
+             top: bubble.y + 'px',
+             width: bubble.size + 'px',
+             height: bubble.size + 'px',
+             backgroundColor: bubble.color,
+             opacity: bubble.opacity,
+             animationDelay: bubble.delay + 's'
+           }">
+        <span>{{ bubble.text }}</span>
+      </div>
     </div>
-  </div>
+    
+     
+  
+  </div> 
 
   <!-- Contenedor del registro -->
   <div class="register-wrapper">
@@ -213,6 +226,27 @@ export default {
       hasError: false,
       isLoading: false,
       showRequirements: false,
+      
+      // Elementos del fondo interactivo
+      floatingProducts: Array(10).fill().map((_, i) => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        size: Math.random() * 80 + 40,
+        rotation: Math.random() * 360,
+        speed: Math.random() * 0.3 + 0.2,
+        image: this.getRandomProductImage(i),
+        shadow: `rgba(4, 127, 250, ${Math.random() * 0.3 + 0.2})`
+      })),
+      discountBubbles: Array(5).fill().map(() => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        size: Math.random() * 60 + 40,
+        color: `hsl(${Math.random() * 60 + 190}, 70%, 60%)`,
+        opacity: Math.random() * 0.4 + 0.2,
+        speed: Math.random() * 0.5 + 0.3,
+        delay: Math.random() * 5,
+        text: this.getRandomDiscountText()
+      })),
       particles: Array(30).fill().map(() => ({
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
@@ -242,7 +276,47 @@ export default {
     }
   },
   methods: {
-    animateParticles() {
+    // Métodos para el fondo interactivo
+    getRandomProductImage(index) {
+      const products = [
+        'https://static.vecteezy.com/system/resources/previews/016/283/734/non_2x/smartphone-cartoon-style-vector.jpg',
+        'https://previews.123rf.com/images/larryrains/larryrains1901/larryrains190100027/118556689-laptop-una-ilustración-de-dibujos-animados-de-vector-de-una-computadora-portátil.jpg',
+        'https://st4.depositphotos.com/11953928/25417/v/450/depositphotos_254173522-stock-illustration-technology-earpod-cartoon.jpg',
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIyo9Qct5KHX947WsivC2XaC7RnY9-p3pyUw&s',
+        'https://media.istockphoto.com/id/1298405700/es/vector/reloj-marrón-en-la-muñeca-símbolo-de-tiempo-aislado-sobre-fondo-blanco-ilustración.jpg?s=612x612&w=0&k=20&c=bdmaX7Z_qc9bL1YHUhgbqcpzBXU-tOywhG2buWeNMb0=',
+        'https://i.pinimg.com/736x/1b/bd/c7/1bbdc7eae11e8cd58767ae3c658293ec.jpg',
+        'https://img.freepik.com/vector-premium/icono-camara-dibujos-animados-diseno-plano_387795-125.jpg',
+        'https://previews.123rf.com/images/pandavector/pandavector1609/pandavector160900361/63131449-pesas-de-dibujos-animados-icono-icono-del-deporte-individual-de-la-gran-aptitud-sano-recolección.jpg',
+        'https://i.ebayimg.com/thumbs/images/g/m7AAAOSw5zdm0rXh/s-l1200.jpg',
+        'https://i.pinimg.com/474x/26/da/00/26da0013f426665d2cd4f29b225ab99a.jpg'
+      ];
+      return products[index % products.length];
+    },
+    
+    getRandomDiscountText() {
+      const discounts = ['-20%', 'Oferta', 'Nuevo', '¡Regístrate!', 'Descuento', 'Promo'];
+      return discounts[Math.floor(Math.random() * discounts.length)];
+    },
+    
+    animateFloatingElements() {
+      this.floatingProducts.forEach(product => {
+        product.y += product.speed;
+        product.rotation += 0.2;
+        
+        if (product.y > window.innerHeight) {
+          product.y = -100;
+          product.x = Math.random() * window.innerWidth;
+        }
+      });
+      
+      this.discountBubbles.forEach(bubble => {
+        bubble.y -= bubble.speed;
+        if (bubble.y < -50) {
+          bubble.y = window.innerHeight + 50;
+          bubble.x = Math.random() * window.innerWidth;
+        }
+      });
+      
       this.particles.forEach(particle => {
         particle.y += particle.speed;
         if (particle.y > window.innerHeight) {
@@ -251,15 +325,29 @@ export default {
         }
       });
       
-      this.animationFrame = requestAnimationFrame(this.animateParticles);
+      this.animationFrame = requestAnimationFrame(this.animateFloatingElements);
     },
-    resetParticles() {
+    
+    resetPositions() {
+      this.floatingProducts = this.floatingProducts.map(product => ({
+        ...product,
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight
+      }));
+      
+      this.discountBubbles = this.discountBubbles.map(bubble => ({
+        ...bubble,
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight
+      }));
+      
       this.particles = this.particles.map(particle => ({
         ...particle,
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight
       }));
     },
+    
     validateCedula() {
       const cedulaRegex = /^[0-9]{6,12}$/
       if (!cedulaRegex.test(this.cedula)) {
@@ -394,11 +482,11 @@ export default {
     }
   },
   mounted() {
-    this.animateParticles();
-    window.addEventListener('resize', this.resetParticles);
+    this.animateFloatingElements();
+    window.addEventListener('resize', this.resetPositions);
   },
   beforeUnmount() {
-    window.removeEventListener('resize', this.resetParticles);
+    window.removeEventListener('resize', this.resetPositions);
     cancelAnimationFrame(this.animationFrame);
   }
 };
@@ -419,75 +507,61 @@ export default {
   --transition-easing: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-/* Estilos para el fondo interactivo */
-.interactive-background {
+/* Fondo para ecommerce */
+.ecommerce-background {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
   z-index: -1;
   overflow: hidden;
 }
 
-.particles {
+/* Productos flotantes */
+.floating-products {
   position: absolute;
   width: 100%;
   height: 100%;
 }
 
-.particle {
+.floating-product {
+  position: absolute;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.8;
+  transition: transform 0.5s ease;
+  will-change: transform;
+}
+
+.floating-product:hover {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* Burbujas de descuento */
+.discount-bubbles {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.bubble {
   position: absolute;
   border-radius: 50%;
-  filter: blur(1px);
-  animation: float 15s infinite linear;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 0.8em;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  animation: float-up 15s infinite linear;
+  cursor: pointer;
 }
 
-@keyframes float {
-  0% { transform: translateY(0) rotate(0deg); }
-  100% { transform: translateY(-100vh) rotate(360deg); }
-}
 
-.waves {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 100px;
-  overflow: hidden;
-}
-
-.wave {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 200%;
-  height: 100%;
-  background-repeat: repeat no-repeat;
-  background-position: 0 bottom;
-  background-size: 50% 100px;
-}
-
-.wave-1 {
-  animation: wave 15s linear infinite;
-  opacity: 0.5;
-}
-
-.wave-2 {
-  animation: wave 10s linear infinite reverse;
-  opacity: 0.3;
-}
-
-.wave-3 {
-  animation: wave 5s linear infinite;
-  opacity: 0.1;
-}
-
-@keyframes wave {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
 
 /* Contenedor del registro */
 .register-wrapper {
@@ -875,6 +949,15 @@ label {
   
   .submit-button {
     padding: 14px;
+  }
+  
+  /* Reducir número de elementos en móviles */
+  .floating-products {
+    display: none; /* O reducir la cantidad en data() */
+  }
+  
+  .discount-bubbles {
+    display: none; /* O reducir la cantidad en data() */
   }
 }
 </style>
