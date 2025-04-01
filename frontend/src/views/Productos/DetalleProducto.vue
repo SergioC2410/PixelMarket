@@ -69,21 +69,33 @@
             <div class="buy-button-container">
               <button 
                 class="buy-button"
-                @mouseenter="isHovered = true"
-                @mouseleave="isHovered = false"
+                :class="{ 
+                  'loading': agregandoAlCarrito,
+                  'no-stock': producto.stock <= 0
+                }"
                 @click="agregarAlCarrito"
                 :disabled="producto.stock <= 0 || agregandoAlCarrito"
               >
-                <span class="price">
-                  {{ formatoPrecio(precioFinal) }}
-                </span>
-                <span class="cart-icon">
-                  <i class="fas fa-shopping-cart"></i>
-                </span>
-                <span class="buy-text">
-                  {{ agregandoAlCarrito ? 'Agregando...' : 'Comprar ahora' }}
-                </span>
+                <template v-if="!agregandoAlCarrito">
+                  <span class="price">{{ formatoPrecio(precioFinal) }}</span>
+                  <span class="cart-icon"><i class="fas fa-shopping-cart"></i></span>
+                  <span class="buy-text">
+                    {{ producto.stock > 0 ? 'Comprar ahora' : 'Agotado' }}
+                  </span>
+                </template>
+                <template v-else>
+                  <i class="fas fa-spinner fa-spin loading-spinner"></i>
+                  <span class="loading-text">Agregando...</span>
+                </template>
               </button>
+
+              <!-- Mensaje flotante -->
+              <transition name="message-fade">
+                <div v-if="showMessage" class="add-to-cart-message" :class="messageType">
+                  <i :class="messageIcon"></i>
+                  {{ messageText }}
+                </div>
+              </transition>
             </div>
           </div>
 
@@ -128,8 +140,8 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from 'vuex'
-import ValoracionesProducto from '@/components/ValoracionesProducto.vue'
+import { mapActions, mapGetters, mapState } from 'vuex';
+import ValoracionesProducto from '@/components/ValoracionesProducto.vue';
 
 export default {
   name: 'DetalleProducto',
@@ -139,18 +151,19 @@ export default {
       isHovered: false,
       cantidad: 1,
       agregandoAlCarrito: false,
-      placeholderImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
-    }
+      placeholderImage: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+      showMessage: false,
+      messageText: '',
+      messageType: 'success',
+      messageIcon: 'fas fa-check-circle'
+    };
   },
   computed: {
     ...mapGetters(['productoDetalle', 'estaCargando', 'productosConDescuento']),
     ...mapState(['error']),
     
     producto() {
-      // Buscar si el producto tiene descuento en el store
       const productoConDescuento = this.productosConDescuento.find(p => p.id === this.productoDetalle?.id);
-      
-      // Si tiene descuento, mezclar los datos
       return productoConDescuento || this.productoDetalle || {};
     },
     
@@ -184,32 +197,45 @@ export default {
     ...mapActions(['cargarProductoPorId', 'agregarProductoAlCarrito']),
     
     formatoPrecio(precio) {
-      return new Intl.NumberFormat('es-AR', {
+      return new Intl.NumberFormat('es-VE', {
         style: 'currency',
-        currency: 'ARS'
+        currency: 'VES'
       }).format(precio || 0);
     },
     
     async agregarAlCarrito() {
+      if (this.producto.stock <= 0) return;
+      
       this.agregandoAlCarrito = true;
+      
       try {
         await this.agregarProductoAlCarrito({
           productoId: this.producto.id,
           cantidad: this.cantidad,
-          precioUnitario: this.precioFinal // Enviamos el precio con descuento si aplica
+          precioUnitario: this.precioFinal
         });
-        this.$bvToast.toast('Producto agregado al carrito', {
-          variant: 'success',
-          autoHideDelay: 3000
-        });
+        
+        this.showFeedback('Producto agregado al carrito', 'success', 'fas fa-check-circle');
+        
       } catch (error) {
-        this.$bvToast.toast(error.message, {
-          variant: 'danger',
-          autoHideDelay: 3000
-        });
+        const errorMsg = error.response?.data?.message || 
+                       error.message || 
+                       'Error al agregar al carrito';
+        this.showFeedback(errorMsg, 'error', 'fas fa-exclamation-circle');
       } finally {
         this.agregandoAlCarrito = false;
       }
+    },
+    
+    showFeedback(text, type, icon) {
+      this.messageText = text;
+      this.messageType = type;
+      this.messageIcon = icon;
+      this.showMessage = true;
+      
+      setTimeout(() => {
+        this.showMessage = false;
+      }, 3000);
     },
     
     recargarProducto() {
@@ -253,73 +279,88 @@ export default {
 };
 </script>
 
-
 <style scoped>
-/* Base styles */
+/* ============ ESTILOS GENERALES ============ */
 .product-page {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 2rem;
   background-color: white;
+  min-height: calc(100vh - 120px);
 }
 
-/* Container */
+/* ============ ESTILOS DE PRODUCTO ============ */
 .product-card {
-  width: 750px;
-  height: 450px;
+  width: 100%;
+  max-width: 900px;
   background: white;
   border-radius: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   margin: 1.5rem auto;
   overflow: hidden;
-  opacity: 0;
   animation: fadeIn 0.6s ease-out forwards;
 }
 
-/* Content grid */
 .product-content {
   display: flex;
-  height: 100%;
-  padding: 1.5rem;
+  flex-wrap: wrap;
+  padding: 2rem;
   gap: 2rem;
 }
 
-/* Left column (info) */
 .product-info {
   flex: 1;
+  min-width: 300px;
   display: flex;
   flex-direction: column;
   padding: 1rem;
 }
 
-/* Text styles */
+/* ============ ESTILOS DE TEXTO ============ */
 h1 {
   font-size: 1.8rem;
   color: #2c3e50;
   margin-bottom: 0.5rem;
   animation: slideIn 0.5s 0.1s ease-out forwards;
-  opacity: 0;
 }
 
 .description {
   color: #555;
   line-height: 1.6;
-  text-align: center;
   margin: 1.5rem 0;
-  padding: 0 1rem;
   animation: fadeIn 0.5s 0.3s ease-out forwards;
-  opacity: 0;
 }
 
-/* Rating */
+/* ============ ESTILOS DE DESCUENTO ============ */
+.discount-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+  animation: fadeIn 0.5s 0.2s ease-out forwards;
+}
+
+.discount-percent {
+  background-color: #ff4444;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.original-price {
+  color: #6c757d;
+  text-decoration: line-through;
+}
+
+/* ============ ESTILOS DE RATING ============ */
 .rating-container {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
   animation: fadeIn 0.5s 0.2s ease-out forwards;
-  opacity: 0;
 }
 
 .stars {
@@ -332,35 +373,10 @@ h1 {
   font-size: 0.9rem;
 }
 
-/* Descuento */
-.discount-badge {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 15px;
-  animation: fadeIn 0.5s 0.2s ease-out forwards;
-  opacity: 0;
-}
-
-.discount-percent {
-  background-color: #ff4444;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-weight: bold;
-  font-size: 0.9rem;
-}
-
-.original-price {
-  color: #6c757d;
-  font-size: 0.9rem;
-}
-
-/* Stock */
+/* ============ ESTILOS DE STOCK ============ */
 .stock-container {
   margin: 0.5rem 0;
   animation: fadeIn 0.5s 0.4s ease-out forwards;
-  opacity: 0;
   text-align: center;
 }
 
@@ -381,12 +397,10 @@ h1 {
   background: #dc3545;
 }
 
-/* Quantity */
+/* ============ ESTILOS DE CANTIDAD ============ */
 .quantity-control {
-  display: none;
   margin: 1rem 0;
   animation: fadeIn 0.5s 0.5s ease-out forwards;
-  opacity: 0;
 }
 
 .quantity-control label {
@@ -396,12 +410,20 @@ h1 {
   color: #2c3e50;
 }
 
-/* Button */
+.quantity-selector {
+  width: 120px;
+}
+
+.quantity-selector .btn {
+  padding: 0 0.5rem;
+}
+
+/* ============ ESTILOS DEL BOTÓN DE COMPRA ============ */
 .buy-button-container {
   margin-top: auto;
   padding: 0 1rem;
   animation: fadeIn 0.5s 0.6s ease-out forwards;
-  opacity: 0;
+  position: relative;
 }
 
 .buy-button {
@@ -409,11 +431,11 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #2e28a7;
+  background: linear-gradient(135deg, #2e28a7 0%, #3a34c9 100%);
   color: white;
   border: none;
   border-radius: 8px;
-  padding: 0;
+  padding: 0 1.5rem;
   width: 100%;
   height: 50px;
   font-size: 1rem;
@@ -421,81 +443,73 @@ h1 {
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(46, 40, 167, 0.2);
 }
 
-.buy-button:hover {
-  background: #218838;
-  transform: translateY(-3px);
-  box-shadow: 0 6px 12px rgba(40, 167, 69, 0.25);
+.buy-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #3a34c9 0%, #4a44e0 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(46, 40, 167, 0.3);
 }
 
-.buy-button:disabled {
-  background: #95a5a6;
+.buy-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.buy-button.loading {
+  background: #6c757d;
+  cursor: progress;
+}
+
+.buy-button.no-stock {
+  background: #6c757d;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
 .buy-button .price {
-  padding: 0 1.5rem;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   font-weight: bold;
-  color: white;
+  margin-right: 0.5rem;
 }
 
 .buy-button .cart-icon {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: translateX(-100%);
-  opacity: 0;
-  transition: all 0.3s ease;
-  font-size: 1.2rem;
+  margin-left: 0.5rem;
+  font-size: 1.1rem;
 }
 
 .buy-button .buy-text {
-  flex: 1;
+  flex-grow: 1;
   text-align: center;
 }
 
-.buy-button:hover .price {
-  transform: translateX(-100%);
-  opacity: 0;
+.loading-spinner {
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
 }
 
-.buy-button:hover .cart-icon {
-  transform: translateX(0);
-  opacity: 1;
+.loading-text {
+  flex-grow: 1;
+  text-align: center;
 }
 
-/* Right column (image) */
+/* ============ ESTILOS DE IMAGEN ============ */
 .product-image-container {
   flex: 1;
+  min-width: 300px;
   padding: 1rem;
   animation: fadeIn 0.5s 0.2s ease-out forwards;
-  opacity: 0;
 }
 
 .image-wrapper {
   position: relative;
-  height: 100%;
+  height: 400px;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .product-image {
-  width: 110%;
+  width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
@@ -505,14 +519,13 @@ h1 {
   transform: scale(1.03);
 }
 
-/* Specs overlay */
 .specs-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(91, 81, 159, 0.378);
+  background: rgba(91, 81, 159, 0.9);
   color: white;
   padding: 1.5rem;
   transform: translateY(100%) rotateX(15deg);
@@ -544,7 +557,43 @@ h1 {
   opacity: 1;
 }
 
-/* Animations */
+/* ============ ESTILOS DE MENSAJES ============ */
+.add-to-cart-message {
+  position: absolute;
+  bottom: -40px;
+  left: 0;
+  right: 0;
+  padding: 0.5rem;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 500;
+  z-index: 10;
+  opacity: 0.95;
+}
+
+.add-to-cart-message.success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.add-to-cart-message.error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.add-to-cart-message i {
+  margin-right: 0.5rem;
+}
+
+/* ============ ESTILOS DE INFORMACIÓN ADICIONAL ============ */
+.additional-info {
+  width: 100%;
+  max-width: 900px;
+  margin-top: 2rem;
+}
+
+/* ============ ANIMACIONES ============ */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -567,7 +616,23 @@ h1 {
   }
 }
 
-/* Responsive */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.message-fade-enter-active,
+.message-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.message-fade-enter-from,
+.message-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* ============ MEDIA QUERIES ============ */
 @media (max-width: 800px) {
   .product-card {
     width: 100%;
@@ -582,11 +647,11 @@ h1 {
   
   .product-image-container {
     padding: 0;
-    height: 250px;
+    height: 300px;
   }
   
-  .description {
-    padding: 0;
+  .image-wrapper {
+    height: 300px;
   }
 
   .discount-badge {
@@ -597,6 +662,32 @@ h1 {
   
   .buy-button {
     padding: 10px 16px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .product-page {
+    padding: 1rem;
+  }
+  
+  .product-content {
+    padding: 0.5rem;
+  }
+  
+  .product-image-container {
+    height: 250px;
+  }
+  
+  .image-wrapper {
+    height: 250px;
+  }
+  
+  h1 {
+    font-size: 1.5rem;
+  }
+  
+  .description {
     font-size: 0.9rem;
   }
 }
