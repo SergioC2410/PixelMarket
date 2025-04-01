@@ -3,7 +3,6 @@ from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from django.urls import reverse
-from usuarios.models import Usuario  # Importación del modelo Usuario
 
 class Categoria(models.Model):
     nombre = models.CharField(max_length=100, unique=True, verbose_name="Nombre de categoría")
@@ -45,14 +44,6 @@ class Categoria(models.Model):
         return self.nombre
 
 class Producto(models.Model):
-    vendedor = models.ForeignKey(
-        Usuario,
-        on_delete=models.CASCADE,
-        related_name='productos_vendidos',
-        verbose_name="Vendedor",
-        null=True,  # Temporalmente nullable para migración existente
-        blank=True  # Temporalmente en blanco para migración existente
-    )
     nombre = models.CharField(max_length=255, unique=True, verbose_name="Nombre del producto")
     descripcion = models.TextField(blank=True, default='Sin descripción', verbose_name="Descripción")
     precio = models.DecimalField(
@@ -95,51 +86,11 @@ class Producto(models.Model):
             models.Index(fields=['categoria'], name='producto_categoria_idx'),
             models.Index(fields=['activo'], name='producto_activo_idx'),
             models.Index(fields=['destacado'], name='producto_destacado_idx'),
-            models.Index(fields=['vendedor'], name='producto_vendedor_idx'),
         ]
 
     @property
     def precio_final(self):
-        """Calcula el precio final aplicando el descuento"""
         return round(self.precio * (1 - self.descuento/100), 2)
 
-    def clean(self):
-        """Validaciones adicionales del modelo"""
-        super().clean()
-        
-        if self.stock < 0:
-            raise ValidationError("El stock no puede ser negativo")
-            
-        if self.precio <= 0:
-            raise ValidationError("El precio debe ser mayor que cero")
-
-    def save(self, *args, **kwargs):
-        """Guarda el producto asignando automáticamente el vendedor si es nuevo"""
-        if not self.pk and not self.vendedor and hasattr(kwargs.get('request'), 'user'):
-            self.vendedor = kwargs['request'].user
-        super().save(*args, **kwargs)
-
-    def get_absolute_url(self):
-        """URL para acceder al detalle del producto"""
-        return reverse('producto-detail', kwargs={'pk': self.pk})
-
-    def reducir_stock(self, cantidad):
-        """Reduce el stock del producto"""
-        if cantidad > self.stock:
-            raise ValidationError("No hay suficiente stock disponible")
-        self.stock -= cantidad
-        self.save()
-
-    def aumentar_stock(self, cantidad):
-        """Aumenta el stock del producto"""
-        self.stock += cantidad
-        self.save()
-
-    def es_propietario(self, user):
-        """Verifica si el usuario es propietario del producto"""
-        return self.vendedor == user
-
     def __str__(self):
-        """Representación en cadena del producto"""
-        vendedor_info = f" - Vendedor: {self.vendedor.email}" if self.vendedor else ""
-        return f"{self.nombre} (${self.precio_final}){vendedor_info}"
+        return f"{self.nombre} (${self.precio})"
