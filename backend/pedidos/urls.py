@@ -21,6 +21,12 @@ urlpatterns = [
 
     # Ruta para cancelar un pedido
     path('pedidos/<int:pedido_id>/cancelar/', views.cancelar_pedido, name='cancelar_pedido'),
+    
+    # Nueva ruta para marcar como pagado
+    path('pedidos/<int:pedido_id>/marcar_pagado/', views.marcar_como_pagado, name='marcar_como_pagado'),
+    
+    # Nueva ruta para reembolsar
+    path('pedidos/<int:pedido_id>/reembolsar/', views.reembolsar_pedido, name='reembolsar_pedido'),
 ]
 
 # Agregamos las rutas generadas por el router
