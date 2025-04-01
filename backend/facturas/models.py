@@ -57,12 +57,12 @@ class Factura(models.Model):
     def save(self, *args, **kwargs):
         """Genera número de factura si no existe"""
         if not self.numero_factura:
-            año_mes = timezone.now().strftime('%Y%m')
+            anio_mes = timezone.now().strftime('%Y%m')
             ultima = Factura.objects.filter(
-                numero_factura__startswith=f'FAC-{año_mes}'
+                numero_factura__startswith=f'FAC-{anio_mes}'
             ).order_by('-numero_factura').first()
             consecutivo = (int(ultima.numero_factura[-4:]) + 1 if ultima else 1)
-            self.numero_factura = f"FAC-{año_mes}-{consecutivo:04d}"
+            self.numero_factura = f"FAC-{anio_mes}-{consecutivo:04d}"
         
         if not self.total and hasattr(self.pedido, 'items'):
             self.total = sum(

@@ -187,8 +187,13 @@ export default createStore({
           } 
         });
 
-        const productos = data.results || [];
-        commit('SET_PRODUCTOS', productos);
+// Dentro de cargarProductos, modifica:
+const productos = (data.results || []).map(producto => ({
+  ...producto,
+  imagen: construirUrlCompleta(producto.imagen), // <-- Aplicar aquí
+  precio: Number(producto.precio).toFixed(2) // Opcional: formatear precio
+}));
+commit('SET_PRODUCTOS', productos);
         commit('SET_PAGINACION', {
           currentPage: data.current_page || 1,
           totalPages: data.total_pages || 1,
@@ -196,9 +201,10 @@ export default createStore({
         });
 
         // Seleccionar productos destacados (4 aleatorios)
-        const destacados = [...productos]
-          .sort(() => 0.5 - Math.random())
-          .slice(0, 4);
+        const destacados = [...productos] // Ya tienen la imagen procesada
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 4);
+      
         
         // Aplicar descuentos aleatorios
         const conDescuento = [...productos]
