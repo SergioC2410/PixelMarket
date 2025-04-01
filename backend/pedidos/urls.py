@@ -1,33 +1,22 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
-from . import views
+from .views import (
+    PedidoViewSet,
+    PedidoListCreateView,
+    PedidoDetailView,
+    cancelar_pedido,
+    marcar_como_pagado,
+    reembolsar_pedido
+)
+from rest_framework_simplejwt.views import TokenRefreshView
 
-# Usamos DefaultRouter de DRF para manejar las rutas de las vistas basadas en clases
 router = DefaultRouter()
-
-# Registramos las vistas basadas en clases (si las tienes)
-# router.register(r'pedidos', views.PedidoViewSet, basename='pedido')
+router.register(r'pedidos', PedidoViewSet, basename='pedido')
 
 urlpatterns = [
-    # Rutas para crear y listar pedidos
-    path('pedidos/crear/', views.crear_pedido, name='crear_pedido'),
-    path('pedidos/', views.listar_pedidos, name='listar_pedidos'),
-
-    # Ruta para obtener detalles de un pedido específico
-    path('pedidos/<int:pedido_id>/', views.detalle_pedido, name='detalle_pedido'),
-
-    # Ruta para actualizar un pedido (por ejemplo, cambiar el estado)
-    path('pedidos/<int:pedido_id>/actualizar/', views.actualizar_pedido, name='actualizar_pedido'),
-
-    # Ruta para cancelar un pedido
-    path('pedidos/<int:pedido_id>/cancelar/', views.cancelar_pedido, name='cancelar_pedido'),
-    
-    # Nueva ruta para marcar como pagado
-    path('pedidos/<int:pedido_id>/marcar_pagado/', views.marcar_como_pagado, name='marcar_como_pagado'),
-    
-    # Nueva ruta para reembolsar
-    path('pedidos/<int:pedido_id>/reembolsar/', views.reembolsar_pedido, name='reembolsar_pedido'),
-]
-
-# Agregamos las rutas generadas por el router
-urlpatterns += router.urls
+    path('pedidos/crear/', PedidoListCreateView.as_view(), name='pedido-list-create'),
+    path('pedidos/<int:pk>/', PedidoDetailView.as_view(), name='pedido-detail'),
+    path('pedidos/<int:pk>/cancelar/', cancelar_pedido, name='pedido-cancelar'),
+    path('pedidos/<int:pk>/marcar-como-pagado/', marcar_como_pagado, name='pedido-marcar-como-pagado'),
+    path('pedidos/<int:pk>/reembolsar/', reembolsar_pedido, name='pedido-reembolsar'),
+] + router.urls

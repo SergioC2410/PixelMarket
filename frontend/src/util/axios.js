@@ -1,61 +1,70 @@
 import axios from 'axios';
-import store from '@/store';  // Si usas Vuex para manejar tokens/auth
+import store from '@/store';
+import router from '@/router';
 
 const axiosInstance = axios.create({
   baseURL: 'http://localhost:8000/api/',
-  timeout: 15000,
+  timeout: 30000,  // Aumentado para operaciones pesadas
+  withCredentials: true,  // Para manejar cookies si las usas
 });
 
-// Interceptor para manejar peticiones
+// Interceptor de Request mejorado
 axiosInstance.interceptors.request.use(config => {
-  // Verifica si existe el store y el token
-  if (store.state.token || (store.state.auth && store.state.auth.token)) {
-    const token = store.state.token || store.state.auth.token;
+  const tokenSources = [
+    store.state.token,
+    localStorage.getItem('access_token'),
+    sessionStorage.getItem('temp_token')
+  ];
+  const token = tokenSources.find(t => t);
+  
+  if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  
+
+  // Auto-configuración para FormData
   if (config.data instanceof FormData) {
-    config.headers['Content-Type'] = 'multipart/form-data';
+    Object.assign(config.headers, {
+      'Content-Type': 'multipart/form-data',
+      'X-Requested-With': 'XMLHttpRequest'
+    });
   }
-  
+
   return config;
 });
 
-// Interceptor para manejar respuestas
+// Interceptor de Response profesional
 axiosInstance.interceptors.response.use(
-  response => response,
+  response => {
+    // Estandarización de respuestas exitosas
+    return {
+      data: response.data,
+      status: response.status,
+      headers: response.headers
+    };
+  },
   error => {
-    // Manejo centralizado de errores
     const { response } = error;
-    
-    if (response) {
-      const { status, data } = response;
-      const errorMessage = data?.detail || data?.message || 'Error desconocido';
-      
-      // Manejar errores específicos
-      switch (status) {
-        case 401:
-          console.error('No autorizado - Redirigir a login');
-          break;
-        case 403:
-          console.error('Prohibido - Sin permisos');
-          break;
-        case 404:
-          console.error('Recurso no encontrado');
-          break;
-        case 500:
-          console.error('Error interno del servidor');
-          break;
-      }
-      
-      return Promise.reject(new Error(JSON.stringify({
-        code: status,
-        message: errorMessage,
-        details: data
-      })));
+    const errorData = {
+      code: response?.status || 500,
+      message: response?.data?.detail || 'Error de conexión',
+      details: response?.data || {}
+    };
+
+    // Manejo avanzado de errores
+    switch (errorData.code) {
+      case 401:
+        store.dispatch('logout');
+        router.push({ name: 'login', query: { redirect: router.currentRoute.path } });
+        break;
+      case 403:
+        router.push({ name: 'forbidden' });
+        break;
+      case 429:
+        console.warn('Demasiadas solicitudes - Rate limiting');
+        break;
     }
-    
-    return Promise.reject(new Error(error.message || 'Unknown error'));
+
+    return Promise.reject(new Error(JSON.stringify(errorData)));
   }
 );
 

@@ -1,137 +1,177 @@
 <template>
-  <!-- Fondo interactivo para ecommerce -->
-   <div class="ecommerce-background">
-  </div>
-    <!-- Productos flotantes -->
-    <div class="floating-products">
-      <div v-for="(product, index) in floatingProducts" :key="index" class="floating-product" 
-           :style="{
-             left: product.x + 'px',
-             top: product.y + 'px',
-             width: product.size + 'px',
-             height: product.size + 'px',
-             transform: 'rotate(' + product.rotation + 'deg)',
-             backgroundImage: 'url(' + product.image + ')',
-             filter: 'drop-shadow(0 5px 15px ' + product.shadow + ')'
-           }"></div>
-  </div>
+  <!-- Contenedor principal con elementos visuales interactivos -->
+  <div class="main-container">
+    <!-- Fondo interactivo para ecommerce -->
+    <div class="ecommerce-background"></div>
     
-    <!-- Efecto de burbujas de descuento -->
+    <!-- Productos flotantes animados -->
+    <div class="floating-products">
+      <div 
+        v-for="(product, index) in floatingProducts" 
+        :key="'product-'+index" 
+        class="floating-product" 
+        :style="getProductStyle(product)"
+      ></div>
+    </div>
+    
+    <!-- Burbujas de descuento animadas -->
     <div class="discount-bubbles">
-      <div v-for="(bubble, index) in discountBubbles" :key="index" class="bubble" 
-           :style="{
-             left: bubble.x + 'px',
-             top: bubble.y + 'px',
-             width: bubble.size + 'px',
-             height: bubble.size + 'px',
-             backgroundColor: bubble.color,
-             opacity: bubble.opacity,
-             animationDelay: bubble.delay + 's'
-           }">
+      <div 
+        v-for="(bubble, index) in discountBubbles" 
+        :key="'bubble-'+index" 
+        class="bubble"
+        :style="getBubbleStyle(bubble)"
+      >
         <span>{{ bubble.text }}</span>
       </div>
     </div>
-  <!-- Contenedor del login centrado arriba -->
-  <div class="login-wrapper">
-    <div class="login-container" :class="{ 'shake': hasError }">
-      <!-- Logo de la empresa -->
-      <div class="logo-container">
-         <img src="@/assets/Logo/logo.png" alt="PixelMarket Logo" class="logo">
-          <path fill="var(--color-primary)" d="M12,3L2,12H5V20H19V12H22L12,3M12,7.7C14.1,7.7 15.8,9.4 15.8,11.5C15.8,13.6 14.1,15.3 12,15.3C9.9,15.3 8.2,13.6 8.2,11.5C8.2,9.4 9.9,7.7 12,7.7M7,18V10H17V18H7Z" />
-
-      </div>
-
-      <h2 class="animated-title">Iniciar sesión</h2>
-
-      <form @submit.prevent="handleSubmit" class="login-form animated-form">
-        <div class="input-group" :class="{ 'input-error': hasError }">
-          <label for="email">Correo electrónico:</label>
-          <input
-            type="email"
-            id="email"
-            v-model.trim="email" 
-            :disabled="isLoading" 
-            @input="clearError" 
-            placeholder="ejemplo@correo.com"
-            class="animated-input"
-          />
-          <span class="input-focus-border"></span>
+    
+    <!-- Contenedor del formulario de login -->
+    <div class="login-wrapper">
+      <div class="login-container" :class="{ 'shake': hasError }">
+        <!-- Logo de la empresa -->
+        <div class="logo-container">
+          <img src="@/assets/Logo/logo.png" alt="PixelMarket Logo" class="logo">
         </div>
 
-        <div class="input-group" :class="{ 'input-error': hasError }">
-          <label for="password">Ernesto:</label>
-          <input
-            type="password"
-            id="password"
-            v-model.trim="password" 
-            :disabled="isLoading" 
-            minlength="6" 
-            placeholder="••••••"
-            @input="clearError" 
-            class="animated-input"
-          />
-          <span class="input-focus-border"></span>
-        </div>
+        <h2 class="animated-title">Iniciar sesión</h2>
 
-        <transition name="slide-fade">
-          <div v-if="errorMessage" class="error-message">
-            <svg class="error-icon" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z" />
-            </svg>
-            {{ errorMessage }}
+        <!-- Formulario de login -->
+        <form @submit.prevent="handleSubmit" class="login-form animated-form">
+          <!-- Campo de email -->
+          <div class="input-group" :class="{ 'input-error': hasError }">
+            <label for="email">Correo electrónico:</label>
+            <input
+              type="email"
+              id="email"
+              v-model.trim="email"
+              :disabled="isLoading"
+              @input="clearError"
+              placeholder="ejemplo@correo.com"
+              class="animated-input"
+            />
+            <span class="input-focus-border"></span>
           </div>
-        </transition>
 
-        <button 
-          type="submit" 
-          class="submit-button"
-          :class="{ loading: isLoading }"
-          :disabled="isLoading" 
-        >
-          <span v-if="!isLoading" class="button-content">
-            <svg class="button-icon" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M10,17V14H3V10H10V7L15,12L10,17M10,2H19A2,2 0 0,1 21,4V20A2,2 0 0,1 19,22H10A2,2 0 0,1 8,20V18H10V20H19V4H10V6H8V4A2,2 0 0,1 10,2Z" />
-            </svg>
-            <span>Ingresar</span>
-          </span>
-          <span v-else class="button-content">
-            <svg class="spinner" viewBox="0 0 50 50">
-              <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
-            </svg>
-            <span>Verificando...</span>
-          </span>
-        </button>
-      </form>
+          <!-- Campo de contraseña -->
+          <div class="input-group" :class="{ 'input-error': hasError }">
+            <label for="password">Contraseña:</label>
+            <input
+              type="password"
+              id="password"
+              v-model.trim="password"
+              :disabled="isLoading"
+              minlength="6"
+              placeholder="••••••"
+              @input="clearError"
+              class="animated-input"
+            />
+            <span class="input-focus-border"></span>
+          </div>
 
-      <p class="register-link animated-link">
-        ¿Primera vez aquí? 
-        <router-link to="/registro">Crear cuenta</router-link>
-      </p>
+          <!-- Mensaje de error -->
+          <transition name="slide-fade">
+            <div v-if="errorMessage" class="error-message">
+              <svg class="error-icon" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M11,15H13V17H11V15M11,7H13V13H11V7M12,2C6.47,2 2,6.5 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20Z" />
+              </svg>
+              {{ errorMessage }}
+            </div>
+          </transition>
 
-      <p class="password-link animated-link">
-        ¿Se te ha olvidado la contraseña?
-        <router-link to="/contraseña">Olvidé mi Contraseña</router-link>
-      </p>
+          <!-- Botón de submit -->
+          <button 
+            type="submit" 
+            class="submit-button"
+            :class="{ loading: isLoading }"
+            :disabled="isLoading" 
+          >
+            <span v-if="!isLoading" class="button-content">
+              <svg class="button-icon" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M10,17V14H3V10H10V7L15,12L10,17M10,2H19A2,2 0 0,1 21,4V20A2,2 0 0,1 19,22H10A2,2 0 0,1 8,20V18H10V20H19V4H10V6H8V4A2,2 0 0,1 10,2Z" />
+              </svg>
+              <span>Ingresar</span>
+            </span>
+            <span v-else class="button-content">
+              <svg class="spinner" viewBox="0 0 50 50">
+                <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+              </svg>
+              <span>Verificando...</span>
+            </span>
+          </button>
+        </form>
+
+        <!-- Enlaces adicionales -->
+        <p class="register-link animated-link">
+          ¿Primera vez aquí? 
+          <router-link to="/registro">Crear cuenta</router-link>
+        </p>
+
+        <p class="password-link animated-link">
+          ¿Olvidaste tu contraseña?
+          <router-link to="/contraseña">Recuperar contraseña</router-link>
+        </p>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+// Datos de productos para el fondo animado
+const PRODUCT_IMAGES = [
+  'https://static.vecteezy.com/system/resources/previews/016/283/734/non_2x/smartphone-cartoon-style-vector.jpg',
+  'https://previews.123rf.com/images/larryrains/larryrains1901/larryrains190100027/118556689-laptop-una-ilustración-de-dibujos-animados-de-vector-de-una-computadora-portátil.jpg',
+  'https://st4.depositphotos.com/11953928/25417/v/450/depositphotos_254173522-stock-illustration-technology-earpod-cartoon.jpg',
+  'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIyo9Qct5KHX947WsivC2XaC7RnY9-p3pyUw&s',
+  'https://media.istockphoto.com/id/1298405700/es/vector/reloj-marrón-en-la-muñeca-símbolo-de-tiempo-aislado-sobre-fondo-blanco-ilustración.jpg?s=612x612&w=0&k=20&c=bdmaX7Z_qc9bL1YHUhgbqcpzBXU-tOywhG2buWeNMb0=',
+  'https://i.pinimg.com/736x/1b/bd/c7/1bbdc7eae11e8cd58767ae3c658293ec.jpg',
+  'https://img.freepik.com/vector-premium/icono-camara-dibujos-animados-diseno-plano_387795-125.jpg',
+  'https://previews.123rf.com/images/pandavector/pandavector1609/pandavector160900361/63131449-pesas-de-dibujos-animados-icono-icono-del-deporte-individual-de-la-gran-aptitud-sano-recolección.jpg',
+  'https://i.ebayimg.com/thumbs/images/g/m7AAAOSw5zdm0rXh/s-l1200.jpg',
+  'https://i.pinimg.com/474x/26/da/00/26da0013f426665d2cd4f29b225ab99a.jpg'
+];
+
+// Textos para las burbujas de descuento
+const DISCOUNT_TEXTS = ['-20%', 'Oferta', 'Nuevo', '¡Compra ya!', 'Envío gratis', '2x1'];
+
 export default {
   name: 'LoginView',
   data() {
     return {
-      // ... tus datos existentes ...
-      floatingProducts: Array(10).fill().map((_, i) => ({
+      email: '',
+      password: '',
+      isLoading: false,
+      hasError: false,
+      errorMessage: '',
+      animationFrame: null,
+      floatingProducts: Array(10).fill().map((_, i) => this.generateProduct(i)),
+      discountBubbles: Array(5).fill().map(() => this.generateBubble())
+    };
+  },
+  methods: {
+    /**
+     * Genera un producto flotante con propiedades aleatorias
+     * @param {number} index - Índice del producto
+     * @returns {object} Objeto con las propiedades del producto
+     */
+    generateProduct(index) {
+      return {
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
         size: Math.random() * 80 + 40,
         rotation: Math.random() * 360,
         speed: Math.random() * 0.3 + 0.2,
-        image: this.getRandomProductImage(i),
+        image: PRODUCT_IMAGES[index % PRODUCT_IMAGES.length],
         shadow: `rgba(4, 127, 250, ${Math.random() * 0.3 + 0.2})`
-      })),
-      discountBubbles: Array(5).fill().map(() => ({
+      };
+    },
+
+    /**
+     * Genera una burbuja de descuento con propiedades aleatorias
+     * @returns {object} Objeto con las propiedades de la burbuja
+     */
+    generateBubble() {
+      return {
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
         size: Math.random() * 60 + 40,
@@ -139,31 +179,182 @@ export default {
         opacity: Math.random() * 0.4 + 0.2,
         speed: Math.random() * 0.5 + 0.3,
         delay: Math.random() * 5,
-        text: this.getRandomDiscountText()
-      }))
-    };
-  },
-  methods: {
-    getRandomProductImage(index) {
-      const products = [
-        'https://static.vecteezy.com/system/resources/previews/016/283/734/non_2x/smartphone-cartoon-style-vector.jpg', // smartphone
-        'https://previews.123rf.com/images/larryrains/larryrains1901/larryrains190100027/118556689-laptop-una-ilustración-de-dibujos-animados-de-vector-de-una-computadora-portátil.jpg', // laptop
-        'https://st4.depositphotos.com/11953928/25417/v/450/depositphotos_254173522-stock-illustration-technology-earpod-cartoon.jpg', // headphones
-        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSIyo9Qct5KHX947WsivC2XaC7RnY9-p3pyUw&s', // t-shirt
-        'https://media.istockphoto.com/id/1298405700/es/vector/reloj-marrón-en-la-muñeca-símbolo-de-tiempo-aislado-sobre-fondo-blanco-ilustración.jpg?s=612x612&w=0&k=20&c=bdmaX7Z_qc9bL1YHUhgbqcpzBXU-tOywhG2buWeNMb0=', // watch
-        'https://i.pinimg.com/736x/1b/bd/c7/1bbdc7eae11e8cd58767ae3c658293ec.jpg', // shoes
-        'https://img.freepik.com/vector-premium/icono-camara-dibujos-animados-diseno-plano_387795-125.jpg', // camera
-        'https://previews.123rf.com/images/pandavector/pandavector1609/pandavector160900361/63131449-pesas-de-dibujos-animados-icono-icono-del-deporte-individual-de-la-gran-aptitud-sano-recolección.jpg', // bag
-        'https://i.ebayimg.com/thumbs/images/g/m7AAAOSw5zdm0rXh/s-l1200.jpg',// shirt
-        'https://i.pinimg.com/474x/26/da/00/26da0013f426665d2cd4f29b225ab99a.jpg'// smartphone
-      ];
-      return products[index % products.length];
+        text: DISCOUNT_TEXTS[Math.floor(Math.random() * DISCOUNT_TEXTS.length)]
+      };
     },
-    getRandomDiscountText() {
-      const discounts = ['-20%', 'Oferta', 'Nuevo', '¡Compra ya!', 'Envío gratis', '2x1'];
-      return discounts[Math.floor(Math.random() * discounts.length)];
+
+    /**
+     * Devuelve el estilo CSS para un producto flotante
+     * @param {object} product - Objeto del producto
+     * @returns {object} Estilos CSS
+     */
+    getProductStyle(product) {
+      return {
+        left: `${product.x}px`,
+        top: `${product.y}px`,
+        width: `${product.size}px`,
+        height: `${product.size}px`,
+        transform: `rotate(${product.rotation}deg)`,
+        backgroundImage: `url(${product.image})`,
+        filter: `drop-shadow(0 5px 15px ${product.shadow})`
+      };
     },
-    animateFloatingProducts() {
+
+    /**
+     * Devuelve el estilo CSS para una burbuja de descuento
+     * @param {object} bubble - Objeto de la burbuja
+     * @returns {object} Estilos CSS
+     */
+    getBubbleStyle(bubble) {
+      return {
+        left: `${bubble.x}px`,
+        top: `${bubble.y}px`,
+        width: `${bubble.size}px`,
+        height: `${bubble.size}px`,
+        backgroundColor: bubble.color,
+        opacity: bubble.opacity,
+        animationDelay: `${bubble.delay}s`
+      };
+    },
+
+    /**
+     * Maneja el envío del formulario
+     */
+     async handleSubmit() {
+  if (!this.validateForm()) return;
+  
+  this.isLoading = true;
+  this.clearError();
+
+  try {
+    // DEBUG: Mostrar información de la petición
+    console.log('Endpoint:', this.$axios.defaults.baseURL + 'auth/login/');
+    console.log('Datos enviados:', { 
+      email: this.email, 
+      password: '[PROTEGIDO]' // Por seguridad, no mostramos la contraseña real
+    });
+
+    const response = await this.$axios.post('auth/login/', {
+      email: this.email,
+      password: this.password
+    });
+
+    // DEBUG: Mostrar respuesta del servidor
+    console.log('Respuesta recibida:', {
+      status: response.status,
+      data: response.data
+    });
+
+    // Guardar token y datos de usuario
+    localStorage.setItem('access_token', response.data.access);
+    
+    // DEBUG: Verificar token almacenado
+    console.log('Token almacenado:', localStorage.getItem('access_token'));
+    
+    // Redirigir al dashboard/home
+    this.$router.push('/');
+    
+  } catch (error) {
+    // DEBUG: Mostrar error detallado
+    console.error('Error en la petición:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
+    
+    this.handleLoginError(error);
+  } finally {
+    this.isLoading = false;
+  }
+},
+    /**
+     * Maneja errores de login
+     * @param {object} error - Error de la petición
+     */
+    handleLoginError(error) {
+      let errorMessage = 'Error al iniciar sesión';
+      const defaultMessage = 'Credenciales incorrectas';
+      
+      if (error.response) {
+        // Errores específicos del backend
+        const { status, data } = error.response;
+        
+        switch (status) {
+          case 400:
+            errorMessage = data.detail || data.message || defaultMessage;
+            break;
+          case 401:
+            errorMessage = data.detail || defaultMessage;
+            break;
+          case 403:
+            errorMessage = 'Cuenta no verificada. Por favor verifica tu email';
+            break;
+          case 429:
+            errorMessage = 'Demasiados intentos. Por favor espera un momento';
+            break;
+          case 500:
+            errorMessage = 'Error del servidor. Por favor intenta más tarde';
+            break;
+        }
+      } else if (error.request) {
+        errorMessage = 'No se pudo conectar al servidor. Verifica tu conexión';
+      }
+
+      this.showError(errorMessage);
+    },
+
+    /**
+     * Valida los campos del formulario
+     * @returns {boolean} True si el formulario es válido
+     */
+    validateForm() {
+      if (!this.email) {
+        this.showError('Por favor ingresa tu correo electrónico');
+        return false;
+      }
+      
+      // Validación básica de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(this.email)) {
+        this.showError('Por favor ingresa un correo electrónico válido');
+        return false;
+      }
+      
+      if (!this.password) {
+        this.showError('Por favor ingresa tu contraseña');
+        return false;
+      }
+      
+      if (this.password.length < 6) {
+        this.showError('La contraseña debe tener al menos 6 caracteres');
+        return false;
+      }
+      
+      return true;
+    },
+
+    /**
+     * Muestra un mensaje de error
+     * @param {string} message - Mensaje de error a mostrar
+     */
+    showError(message) {
+      this.errorMessage = message;
+      this.hasError = true;
+      this.isLoading = false;
+    },
+
+    /**
+     * Limpia los errores del formulario
+     */
+    clearError() {
+      this.errorMessage = '';
+      this.hasError = false;
+    },
+
+    /**
+     * Animación de los elementos flotantes
+     */
+    animateFloatingElements() {
       this.floatingProducts.forEach(product => {
         product.y += product.speed;
         product.rotation += 0.2;
@@ -182,11 +373,28 @@ export default {
         }
       });
       
-      this.animationFrame = requestAnimationFrame(this.animateFloatingProducts);
+      this.animationFrame = requestAnimationFrame(this.animateFloatingElements);
     },
+
+    /**
+     * Reinicia las posiciones de los elementos al cambiar el tamaño de la ventana
+     */
+    resetPositions() {
+      this.floatingProducts = this.floatingProducts.map((p) => ({
+        ...p,
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight
+      }));
+      
+      this.discountBubbles = this.discountBubbles.map(() => this.generateBubble());
+    }
   },
   mounted() {
-    this.animateFloatingProducts();
+    // Si ya está autenticado, redirigir
+    if (localStorage.getItem('access_token')) {
+      this.$router.push('/');
+    }
+    this.animateFloatingElements();
     window.addEventListener('resize', this.resetPositions);
   },
   beforeUnmount() {
@@ -197,7 +405,28 @@ export default {
 </script>
 
 <style scoped>
-/* Fondo para ecommerce */
+/* ============ VARIABLES CSS ============ */
+:root {
+  --color-primary: #047ffa;
+  --color-primary-light: #4da8ff;
+  --color-primary-dark: #0366d6;
+  --color-error: #e74c3c;
+  --color-error-light: #ff6b6b;
+  --color-success: #2ecc71;
+  --border-radius: 10px;
+  --transition-speed: 0.3s;
+  --transition-easing: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* ============ ESTILOS BASE ============ */
+.main-container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ============ FONDO Y ELEMENTOS ANIMADOS ============ */
 .ecommerce-background {
   position: fixed;
   top: 0;
@@ -206,13 +435,13 @@ export default {
   height: 100%;
   background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
   z-index: -1;
-  overflow: hidden;
 }
 
 .floating-products {
   position: absolute;
   width: 100%;
   height: 100%;
+  pointer-events: none;
 }
 
 .floating-product {
@@ -233,6 +462,7 @@ export default {
   position: absolute;
   width: 100%;
   height: 100%;
+  pointer-events: none;
 }
 
 .bubble {
@@ -246,131 +476,14 @@ export default {
   font-size: 0.8em;
   text-shadow: 0 1px 3px rgba(0,0,0,0.3);
   animation: float-up 15s infinite linear;
-  cursor: pointer;
 }
+
 @keyframes float-up {
   0% { transform: translateY(0); }
   100% { transform: translateY(-100vh); }
 }
 
-.brand-waves {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 100px;
-  overflow: hidden;
-}
-
-.wave {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 200%;
-  height: 100%;
-  background-repeat: repeat no-repeat;
-  background-position: 0 bottom;
-  background-size: 50% 100px;
-}
-
-.wave-1 {
-  animation: wave 15s linear infinite;
-  opacity: 0.7;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='%23047ffa'%3E%3C/path%3E%3C/svg%3E");
-}
-
-.wave-2 {
-  animation: wave 10s linear infinite reverse;
-  opacity: 0.4;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='%23047ffa'%3E%3C/path%3E%3C/svg%3E");
-}
-/* Variables CSS actualizadas */
-:root {
-  --color-primary: #047ffa;
-  --color-primary-light: #4da8ff;
-  --color-primary-dark: #0366d6;
-  --color-error: #e74c3c;
-  --color-error-light: #ff6b6b;
-  --color-success: #2ecc71;
-  --border-radius: 10px;
-  --transition-speed: 0.3s;
-  --transition-easing: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-/* Estilos para el fondo interactivo */
-.interactive-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-  z-index: -1;
-  overflow: hidden;
-}
-
-.particles {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-}
-
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(1px);
-  animation: float 15s infinite linear;
-}
-
-@keyframes float {
-  0% { transform: translateY(0) rotate(0deg); }
-  100% { transform: translateY(-100vh) rotate(360deg); }
-}
-
-.waves {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 100px;
-  overflow: hidden;
-}
-
-.wave {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 200%;
-  height: 100%;
-  background-repeat: repeat no-repeat;
-  background-position: 0 bottom;
-  background-size: 50% 100px;
-}
-
-.wave-1 {
-  animation: wave 15s linear infinite;
-  opacity: 0.5;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSptjkIYENr9nXb1TL75tt73rsTjeLLZzCSLA&s' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='%234da8ff'%3E%3C/path%3E%3C/svg%3E");
-}
-
-.wave-2 {
-  animation: wave 10s linear infinite reverse;
-  opacity: 0.3;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSptjkIYENr9nXb1TL75tt73rsTjeLLZzCSLA&s' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='%234da8ff'%3E%3C/path%3E%3C/svg%3E");
-}
-
-.wave-3 {
-  animation: wave 5s linear infinite;
-  opacity: 0.1;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSptjkIYENr9nXb1TL75tt73rsTjeLLZzCSLA&s' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' fill='%234da8ff'%3E%3C/path%3E%3C/svg%3E");
-}
-
-@keyframes wave {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-/* Contenedor del login */
+/* ============ CONTENEDOR DEL LOGIN ============ */
 .login-wrapper {
   display: flex;
   justify-content: center;
@@ -392,6 +505,7 @@ export default {
   backdrop-filter: blur(5px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   height: fit-content;
+  z-index: 10;
 }
 
 .login-container::before {
@@ -408,7 +522,7 @@ export default {
   animation: shake 0.6s;
 }
 
-/* Logo y nombre de la empresa */
+/* ============ LOGO ============ */
 .logo-container {
   text-align: center;
   margin-bottom: 1.5rem;
@@ -416,12 +530,11 @@ export default {
 
 .logo {
   width: 100px;
-  height: 100px;
-  margin-bottom: -10rem;
-  margin-top: -10rem;
+  height: auto;
+  margin-bottom: 1rem;
 }
 
-/* Resto de estilos (se mantienen igual que en la versión anterior) */
+/* ============ TÍTULO ============ */
 .animated-title {
   text-align: center;
   margin-bottom: 2rem;
@@ -440,6 +553,7 @@ export default {
   border-radius: 3px;
 }
 
+/* ============ FORMULARIO ============ */
 .animated-form {
   animation: fadeIn 0.8s ease-out 0.2s both;
 }
@@ -489,6 +603,7 @@ label {
   width: 100%;
 }
 
+/* ============ ESTILOS DE ERROR ============ */
 .input-error .animated-input {
   border-color: var(--color-error);
 }
@@ -519,6 +634,7 @@ label {
   flex-shrink: 0;
 }
 
+/* ============ TRANSICIONES ============ */
 .slide-fade-enter-active {
   transition: all 0.3s ease-out;
 }
@@ -533,6 +649,7 @@ label {
   opacity: 0;
 }
 
+/* ============ BOTÓN ============ */
 .submit-button {
   width: 100%;
   padding: 15px;
@@ -553,7 +670,7 @@ label {
 }
 
 .submit-button:hover {
-  background: var(0 6px 8px rgba(10, 61, 112, 0.3));
+  background: var(--color-primary-dark);
   box-shadow: 0 6px 8px rgba(4, 127, 250, 0.3);
   transform: translateY(-2px);
 }
@@ -598,6 +715,7 @@ label {
   animation: dash 1.5s ease-in-out infinite;
 }
 
+/* ============ ENLACES ============ */
 .animated-link {
   margin-top: 1.5rem;
   text-align: center;
@@ -632,6 +750,7 @@ label {
   width: 100%;
 }
 
+/* ============ ANIMACIONES ============ */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -674,7 +793,7 @@ label {
   }
 }
 
-/* Responsive */
+/* ============ RESPONSIVE ============ */
 @media (max-width: 480px) {
   .login-container {
     padding: 1.5rem;
@@ -687,6 +806,10 @@ label {
   
   .submit-button {
     padding: 14px;
+  }
+  
+  .logo {
+    width: 80px;
   }
 }
 </style>

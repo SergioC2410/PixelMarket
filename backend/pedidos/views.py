@@ -1,193 +1,143 @@
-"""
-Este módulo contiene las vistas para manejar pedidos en la aplicación.
-"""
-from rest_framework import status
+from rest_framework import status, generics, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.core.exceptions import ValidationError
+from django.shortcuts import get_object_or_404
+from django.db import transaction
 from productos.models import Producto
 from .models import Pedido, ItemPedido
-from .serializers import PedidoSerializer, ItemPedidoSerializer
+from .serializers import PedidoSerializer
+from usuarios.permissions import EsPropietario
 
-# Constantes
-PEDIDO_NO_ENCONTRADO = 'Pedido no encontrado'
+class PedidoViewSet(viewsets.ModelViewSet):
+    queryset = Pedido.objects.all()
+    serializer_class = PedidoSerializer
+    permission_classes = [IsAuthenticated, EsPropietario]
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def crear_pedido(request):
-    """
-    Vista para crear un nuevo pedido.
-    """
-    if request.method == 'POST':
-        try:
-            data = request.data
-            usuario_id = data.get('usuario_id')
-            items = data.get('items', [])
-            metodo_entrega = data.get('metodo_entrega', 'domicilio')
-            direccion_entrega = data.get('direccion_entrega', '')
+    def get_queryset(self):
+        # Filtra los pedidos por el usuario autenticado
+        return self.queryset.filter(usuario=self.request.user)
+class PedidoListCreateView(generics.ListCreateAPIView):
+    serializer_class = PedidoSerializer
+    permission_classes = [IsAuthenticated]
+    queryset = Pedido.objects.all().select_related('usuario').prefetch_related('items')
 
-            if not items:
-                return Response({'error': 'El pedido debe contener al menos un ítem.'}, 
-                              status=status.HTTP_400_BAD_REQUEST)
+    def get_queryset(self):
+        # Filtrar los pedidos por el usuario logueado
+        return self.queryset.filter(usuario=self.request.user)
 
-            # Validar método de entrega
-            if metodo_entrega == 'domicilio' and not direccion_entrega:
-                return Response({'error': 'Debe proporcionar una dirección de entrega para envío a domicilio.'}, 
-                              status=status.HTTP_400_BAD_REQUEST)
+    def perform_create(self, serializer):
+        # Crear un pedido y actualizar el stock
+        with transaction.atomic():
+            pedido = serializer.save(usuario=self.request.user)
+            self.actualizar_stock(pedido, accion='reservar')
 
-            # Crear el pedido con estado inicial "pendiente_pago"
-            pedido = Pedido.objects.create(
-                usuario_id=usuario_id,
-                estado='pendiente_pago',
-                metodo_entrega=metodo_entrega,
-                direccion_entrega=direccion_entrega if metodo_entrega == 'domicilio' else None
-            )
+    def actualizar_stock(self, pedido, accion):
+        # Actualizar el stock de los productos en el pedido
+        for item in pedido.items.all():
+            if accion == 'reservar':
+                item.producto.reducir_stock(item.cantidad)
+            elif accion == 'liberar':
+                item.producto.aumentar_stock(item.cantidad)
+            elif accion == 'confirmar':
+                item.producto.reducir_stock(item.cantidad)
+            elif accion == 'restar':
+                item.producto.reducir_stock(item.cantidad)
+            elif accion == 'sumar':
+                item.producto.aumentar_stock(item.cantidad)
 
-            # Procesar cada ítem del pedido
-            for item in items:
-                producto_id = item.get('producto_id')
-                cantidad = item.get('cantidad', 1)
 
-                try:
-                    producto = Producto.objects.get(id=producto_id)
-                except Producto.DoesNotExist:
-                    pedido.delete()  # Eliminar el pedido si el producto no existe
-                    return Response({'error': f'Producto con ID {producto_id} no encontrado.'}, 
-                                  status=status.HTTP_404_NOT_FOUND)
+class PedidoDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = PedidoSerializer
+    permission_classes = [IsAuthenticated, EsPropietario]
+    queryset = Pedido.objects.all().select_related('usuario').prefetch_related('items')
 
-                if cantidad > producto.stock:
-                    pedido.delete()  # Eliminar el pedido si no hay suficiente stock
-                    return Response({'error': f'No hay suficiente stock para {producto.nombre}. Stock disponible: {producto.stock}'}, 
-                                  status=status.HTTP_400_BAD_REQUEST)
+    def perform_update(self, serializer):
+        old_status = self.get_object().estado
+        new_status = serializer.validated_data.get('estado', old_status)
 
-                # Crear el ítem de pedido
-                ItemPedido.objects.create(
-                    pedido=pedido,
-                    producto=producto,
-                    cantidad=cantidad,
-                    precio_unitario=producto.precio
-                )
+        with transaction.atomic():
+            pedido = serializer.save()
+            self.manejar_cambio_estado(pedido, old_status, new_status)
 
-            # Calcular el total del pedido
-            pedido.calcular_total()
+    def perform_destroy(self, instance):
+        # Actualizar stock al eliminar el pedido
+        with transaction.atomic():
+            self.actualizar_stock(instance, accion='liberar')
+            instance.delete()
 
-            return Response({
-                'mensaje': 'Pedido creado exitosamente.', 
-                'pedido_id': pedido.id,
-                'estado': pedido.estado
-            }, status=status.HTTP_201_CREATED)
+    def manejar_cambio_estado(self, pedido, old_status, new_status):
+        if new_status == Pedido.EstadoPedido.CANCELADO:
+            self.actualizar_stock(pedido, accion='liberar')
+        elif new_status == Pedido.EstadoPedido.PAGADO and old_status != new_status:
+            self.actualizar_stock(pedido, accion='confirmar')
 
-        except ValidationError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({'error': f'Error inesperado: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-    return Response({'error': 'Método no permitido.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def listar_pedidos(request):
-    """
-    Vista para listar todos los pedidos de un usuario.
-    """
-    if request.method == 'GET':
-        usuario_id = request.query_params.get('usuario_id')
-
-        if not usuario_id:
-            return Response({'error': 'Se requiere el ID del usuario.'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
-
-        pedidos = Pedido.objects.filter(usuario_id=usuario_id).select_related('usuario').prefetch_related('items')
-        serializer = PedidoSerializer(pedidos, many=True)
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    return Response({'error': 'Método no permitido.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def detalle_pedido(request, pedido_id):
-    """
-    Vista para obtener los detalles de un pedido específico.
-    """
-    try:
-        pedido = Pedido.objects.get(id=pedido_id)
-        serializer = PedidoSerializer(pedido)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    except Pedido.DoesNotExist:
-        return Response({'error': PEDIDO_NO_ENCONTRADO}, status=status.HTTP_404_NOT_FOUND)
-
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
-def actualizar_pedido(request, pedido_id):
-    """
-    Vista para actualizar un pedido (por ejemplo, cambiar el estado).
-    """
-    try:
-        pedido = Pedido.objects.get(id=pedido_id)
-        serializer = PedidoSerializer(pedido, data=request.data, partial=True)
-
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    except Pedido.DoesNotExist:
-        return Response({'error': PEDIDO_NO_ENCONTRADO}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def cancelar_pedido(request, pedido_id):
-    """
-    Vista para cancelar un pedido.
-    """
-    try:
-        pedido = Pedido.objects.get(id=pedido_id)
-        
-        if pedido.estado == 'reembolsado':
-            return Response({'error': 'No se puede cancelar un pedido ya reembolsado.'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
-            
-        pedido.estado = 'cancelado'
+@permission_classes([IsAuthenticated, EsPropietario])
+def cancelar_pedido(request, pk):
+    pedido = get_object_or_404(Pedido, pk=pk)
+
+    if pedido.estado == Pedido.EstadoPedido.REEMBOLSADO:
+        return Response(
+            {'error': 'No se puede cancelar un pedido ya reembolsado.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    with transaction.atomic():
+        pedido.estado = Pedido.EstadoPedido.CANCELADO
         pedido.save()
-        return Response({'mensaje': 'Pedido cancelado exitosamente.'}, status=status.HTTP_200_OK)
-    except Pedido.DoesNotExist:
-        return Response({'error': PEDIDO_NO_ENCONTRADO}, status=status.HTTP_404_NOT_FOUND)
+        # Actualizar stock al cancelar el pedido
+        pedido.actualizar_stock(accion='sumar')
+
+    return Response(
+        {'mensaje': 'Pedido cancelado exitosamente.'},
+        status=status.HTTP_200_OK
+    )
+
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def marcar_como_pagado(request, pedido_id):
-    """
-    Vista para marcar un pedido como pagado.
-    """
-    try:
-        pedido = Pedido.objects.get(id=pedido_id)
-        
-        if pedido.estado != 'pendiente_pago':
-            return Response({'error': 'Solo se pueden marcar como pagados pedidos con estado "Pendiente de Pago".'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
-            
-        pedido.estado = 'pagado'
+@permission_classes([IsAuthenticated, EsPropietario])
+def marcar_como_pagado(request, pk):
+    pedido = get_object_or_404(Pedido, pk=pk)
+
+    if pedido.estado != Pedido.EstadoPedido.PENDIENTE_PAGO:
+        return Response(
+            {'error': 'Solo se pueden marcar como pagados pedidos en estado Pendiente de Pago.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    with transaction.atomic():
+        pedido.estado = Pedido.EstadoPedido.PAGADO
         pedido.save()
-        return Response({'mensaje': 'Pedido marcado como pagado exitosamente.'}, status=status.HTTP_200_OK)
-    except Pedido.DoesNotExist:
-        return Response({'error': PEDIDO_NO_ENCONTRADO}, status=status.HTTP_404_NOT_FOUND)
+        # Actualizar stock al marcar como pagado
+        pedido.actualizar_stock(accion='restar')
+
+    return Response(
+        {'mensaje': 'Pedido marcado como pagado exitosamente.'},
+        status=status.HTTP_200_OK
+    )
+
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def reembolsar_pedido(request, pedido_id):
-    """
-    Vista para reembolsar un pedido.
-    """
-    try:
-        pedido = Pedido.objects.get(id=pedido_id)
-        
-        if pedido.estado not in ['cancelado', 'pagado']:
-            return Response({'error': 'Solo se pueden reembolsar pedidos cancelados o pagados.'}, 
-                          status=status.HTTP_400_BAD_REQUEST)
-            
-        pedido.estado = 'reembolsado'
+@permission_classes([IsAuthenticated, EsPropietario])
+def reembolsar_pedido(request, pk):
+    pedido = get_object_or_404(Pedido, pk=pk)
+
+    if pedido.estado not in [Pedido.EstadoPedido.CANCELADO, Pedido.EstadoPedido.PAGADO]:
+        return Response(
+            {'error': 'Solo se pueden reembolsar pedidos cancelados o pagados.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    with transaction.atomic():
+        pedido.estado = Pedido.EstadoPedido.REEMBOLSADO
         pedido.save()
-        return Response({'mensaje': 'Pedido reembolsado exitosamente.'}, status=status.HTTP_200_OK)
-    except Pedido.DoesNotExist:
-        return Response({'error': PEDIDO_NO_ENCONTRADO}, status=status.HTTP_404_NOT_FOUND)
+        # Actualizar stock al reembolsar
+        if pedido.estado == Pedido.EstadoPedido.PAGADO:
+            pedido.actualizar_stock(accion='sumar')
+
+    return Response(
+        {'mensaje': 'Pedido reembolsado exitosamente.'},
+        status=status.HTTP_200_OK
+    )
