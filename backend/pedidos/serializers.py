@@ -48,7 +48,8 @@ class PedidoSerializer(serializers.ModelSerializer):
         Clase Meta para configurar el serializador.
         """
         model = Pedido  # Especifica el modelo que se va a serializar.
-        fields = ['id', 'usuario_id', 'fecha_creacion', 'estado', 'total', 'items']  # Campos que se incluirán en el JSON.
+        fields = ['id', 'usuario_id', 'fecha_creacion', 'estado', 'metodo_entrega', 
+                 'direccion_entrega', 'total', 'items']  # Campos que se incluirán en el JSON.
 
     def validate_estado(self, value):
         """
@@ -59,10 +60,24 @@ class PedidoSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"Estado no válido. Los estados permitidos son: {', '.join(estados_permitidos)}")
         return value
 
+    def validate_metodo_entrega(self, value):
+        """
+        Valida que el método de entrega sea uno de los permitidos.
+        """
+        metodos_permitidos = [metodo[0] for metodo in Pedido.METODOS_ENTREGA]
+        if value not in metodos_permitidos:
+            raise serializers.ValidationError(f"Método de entrega no válido. Los métodos permitidos son: {', '.join(metodos_permitidos)}")
+        return value
+
     def validate(self, data):
         """
         Valida que el pedido tenga al menos un ítem antes de guardarlo.
+        Valida también que si el método de entrega es a domicilio, haya una dirección.
         """
         if 'items' not in self.context or len(self.context['items']) == 0:
-            raise serializers.ValidationError("Un pedido no puede estar vacío.")
+            raise serializers.ValidationError("El pedido debe contener al menos un ítem.")
+            
+        if data.get('metodo_entrega') == 'domicilio' and not data.get('direccion_entrega'):
+            raise serializers.ValidationError("Debe proporcionar una dirección de entrega para envío a domicilio.")
+            
         return data
