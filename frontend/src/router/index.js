@@ -11,7 +11,7 @@ import Register from '@/views/Auth/Register.vue';
 import Contraseña from '@/views/Auth/Contraseña.vue';
 import MetodoPago from '@/components/MetodoPago.vue';
 import SearchResults from '@/components/SearchResults.vue';
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"></link>
 // Definir rutas
 const routes = [
   { 

@@ -26,10 +26,7 @@
                 <router-link to="/productos" class="nav-link">Productos</router-link>
               </li>
               <li class="nav-item mx-2 position-relative">
-                <router-link to="/checkout" class="nav-link">
-                  <i class="fas fa-shopping-cart fa-lg"></i>
-                  <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">0</span>
-                </router-link>
+                <CartDropdown />
               </li>
               <li class="nav-item mx-2">
                 <router-link to="/login" class="btn btn-outline-primary">Ingresar</router-link>
@@ -57,10 +54,11 @@
 <script>
 // Importamos el componente SearchBar para mostrarlo siempre
 import SearchBar from './components/SearchBar.vue';
+import CartDropdown from './components/CartDropdown.vue';
 
 export default {
   name: 'App',
-  components: { SearchBar }
+  components: { SearchBar, CartDropdown }
 };
 </script>
 
@@ -173,5 +171,34 @@ export default {
 .main-content {
   padding: 2rem 0;
   min-height: calc(100vh - 180px);
+}
+
+/* Estilos para el dropdown del carrito */
+.cart-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.cart-toggle {
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 0.7rem;
+  background-color: var(--color-error);
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

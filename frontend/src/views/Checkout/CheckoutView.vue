@@ -1,15 +1,16 @@
 <template>
-  <div class="cart-container">
+  <div class="checkout-container">
     <!-- Mensaje cuando no hay productos -->
     <div v-if="cartItems.length === 0" class="empty-cart-message">
       <h2>No hay productos en tu carrito</h2>
       <p>¡Explora nuestros productos y añade algunos a tu carrito!</p>
+      <router-link to="/productos" class="btn btn-primary">Ver Productos</router-link>
     </div>
 
     <!-- Listado de productos -->
     <div class="item-list" v-if="cartItems.length > 0">
       <div v-for="item in cartItems" :key="item.id" class="cart-item">
-        <img :src="item.image" :alt="item.name" class="product-image" />
+        <img :src="item.image || placeholderImage" :alt="item.name" class="product-image" />
         <div class="item-details">
           <h3>{{ item.name }}</h3>
           <div class="quantity-controls">
@@ -25,17 +26,32 @@
           <p>
             Precio en BS.F: {{ formatCurrency(item.price * item.quantity) }}<br />
             Precio en Dólares: {{ formatCurrencyUSD(item.price * item.quantity) }}<br />
-            Descuento: {{ item.discountPercentage }}%<br />
-            Precio con Descuento en BS.F: {{ formatCurrency(calculatePriceWithDiscount(item)) }}<br />
-            Precio con Descuento en Dólares: {{ formatCurrencyUSD(calculatePriceWithDiscount(item)) }}
+            <!-- TODO: Mostrar descuento si existe -->
+            <span v-if="item.discountPercentage > 0">
+              Descuento: {{ item.discountPercentage }}%<br />
+              Precio con Descuento en BS.F: {{ formatCurrency(calculatePriceWithDiscount(item)) }}<br />
+              Precio con Descuento en Dólares: {{ formatCurrencyUSD(calculatePriceWithDiscount(item)) }}
+            </span>
           </p>
           <button @click="removeItem(item)" class="remove-btn">Eliminar</button>
         </div>
       </div>
     </div>
+
     <!-- Resumen de compra -->
     <div class="checkout-summary" v-if="cartItems.length > 0">
       <h2>Resumen de Pedido</h2>
+      
+      <!-- TODO: Mostrar detalles de envío si aplican -->
+      <div v-if="shippingOptions.length > 0" class="shipping-options">
+        <h3>Método de Envío</h3>
+        <select v-model="selectedShipping" @change="updateShippingCost">
+          <option v-for="option in shippingOptions" :key="option.id" :value="option">
+            {{ option.name }} - {{ formatCurrency(option.cost) }}
+          </option>
+        </select>
+      </div>
+
       <div class="summary-row">
         <span class="summary-label">Tasa de cambio:</span>
         <span class="summary-value">1 USD = {{ formatCurrency(exchangeRate) }} BS.F</span>
@@ -44,6 +60,13 @@
         <span class="summary-label">Subtotal:</span>
         <span class="summary-value">BS.F: {{ formatCurrency(subtotal) }} | Dólares: {{ formatCurrencyUSD(subtotal) }}</span>
       </div>
+      
+      <!-- TODO: Mostrar descuentos si existen -->
+      <div v-if="totalDiscount > 0" class="summary-row discount">
+        <span class="summary-label">Descuento Total:</span>
+        <span class="summary-value">- BS.F: {{ formatCurrency(totalDiscount) }} | - Dólares: {{ formatCurrencyUSD(totalDiscount) }}</span>
+      </div>
+
       <div class="summary-row">
         <span class="summary-label">Impuestos (16%):</span>
         <span class="summary-value">BS.F: {{ formatCurrency(taxes) }} | Dólares: {{ formatCurrencyUSD(taxes) }}</span>
@@ -52,14 +75,18 @@
         <span class="summary-label">Envío:</span>
         <span class="summary-value">BS.F: {{ formatCurrency(shippingCost) }} | Dólares: {{ formatCurrencyUSD(shippingCost) }}</span>
       </div>
-      <div class="summary-row">
-        <span class="summary-label">Descuento Total:</span>
-        <span class="summary-value">BS.F: {{ formatCurrency(totalDiscount) }} | Dólares: {{ formatCurrencyUSD(totalDiscount) }}</span>
-      </div>
       <div class="summary-row total">
         <span class="summary-label">Total:</span>
         <span class="summary-value">BS.F: {{ formatCurrency(totalWithDiscount) }} | Dólares: {{ formatCurrencyUSD(totalWithDiscount) }}</span>
       </div>
+
+      <!-- TODO: Agregar información de contacto/dirección si es necesario -->
+      <div class="customer-info" v-if="!isLoggedIn">
+        <h3>Información de Contacto</h3>
+        <input type="email" v-model="customerEmail" placeholder="Correo electrónico" required />
+        <!-- Agrega más campos según necesites -->
+      </div>
+
       <button @click="validateCheckout" class="checkout-btn">
         Finalizar Compra
       </button>
@@ -68,35 +95,49 @@
 </template>
 
 <script>
+import { mapState, mapGetters, mapActions } from 'vuex';
 import axios from 'axios';
 
 export default {
   data() {
     return {
-      cartItems: [], // Inicializamos vacío para probar el mensaje
-      shippingCost: 500,
-      taxRate: 0.16,
-      exchangeRate: 1, // Inicializamos en 1, se actualizará con la API
+      placeholderImage: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2RkZCIgc3Ryb2tlLXdpZHRoPSIyIj48cmVjdCB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHg9IjIiIHk9IjQiIHJ4PSIyIi8+PGNpcmNsZSBjeD0iOC41IiBjeT0iMTAuNSIgcj0iMi41Ii8+PHBhdGggZD0iTTIxIDE1bC01LjUtNS41TDEwIDE1Ii8+PC9zdmc+',
+      customerEmail: '',
+      selectedShipping: {},
+      shippingOptions: [
+        // TODO: Definir opciones de envío (puedes cargarlas desde una API)
+        { id: 1, name: 'Envío Estándar', cost: 500, days: '3-5' },
+        { id: 2, name: 'Envío Express', cost: 1000, days: '1-2' }
+      ],
+      shippingCost: 500 // Valor por defecto
     };
   },
   computed: {
+    ...mapState(['cartItems', 'exchangeRate']),
+    ...mapGetters(['isLoggedIn']),
+    
     subtotal() {
       return this.cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     },
     taxes() {
-      return this.subtotal * this.taxRate;
+      return this.subtotal * 0.16; // TODO: Ajustar tasa de impuestos si es necesario
     },
     total() {
       return this.subtotal + this.taxes + this.shippingCost;
     },
     totalDiscount() {
-      return this.cartItems.reduce((acc, item) => acc + this.calculateDiscount(item), 0);
+      return this.cartItems.reduce((acc, item) => {
+        // TODO: Calcular descuento correctamente
+        return acc + (item.discountPercentage ? (item.price * item.quantity * item.discountPercentage / 100) : 0);
+      }, 0);
     },
     totalWithDiscount() {
       return this.total - this.totalDiscount;
     }
   },
   methods: {
+    ...mapActions(['fetchExchangeRate', 'updateCartItem', 'removeFromCart']),
+    
     formatCurrency(value) {
       return new Intl.NumberFormat('es-VE', {
         style: 'decimal',
@@ -110,67 +151,89 @@ export default {
       }).format(value / this.exchangeRate);
     },
     calculatePriceWithDiscount(item) {
+      if (!item.discountPercentage) return item.price * item.quantity;
       const discount = (item.price * item.quantity * item.discountPercentage) / 100;
       return (item.price * item.quantity) - discount;
     },
-    calculateDiscount(item) {
-      return (item.price * item.quantity * item.discountPercentage) / 100;
-    },
     increaseQuantity(item) {
-      item.quantity++;
+      const newQuantity = item.quantity + 1;
+      this.updateItemQuantity(item, newQuantity);
     },
     decreaseQuantity(item) {
-      if (item.quantity > 1) item.quantity--;
+      if (item.quantity > 1) {
+        const newQuantity = item.quantity - 1;
+        this.updateItemQuantity(item, newQuantity);
+      }
     },
     validateQuantity(item) {
-      if (item.quantity < 1) item.quantity = 1;
+      if (item.quantity < 1) {
+        item.quantity = 1;
+        this.updateItemQuantity(item, 1);
+      }
+    },
+    updateItemQuantity(item, newQuantity) {
+      // TODO: Actualizar cantidad en el store
+      this.updateCartItem({
+        productId: item.id,
+        quantity: newQuantity
+      });
     },
     removeItem(item) {
-      this.cartItems = this.cartItems.filter(i => i.id !== item.id);
+      // TODO: Eliminar item del carrito
+      this.removeFromCart(item.id);
     },
-    validateCheckout() {
+    updateShippingCost() {
+      // TODO: Actualizar costo de envío según selección
+      this.shippingCost = this.selectedShipping.cost || 500;
+    },
+    async validateCheckout() {
       if (this.cartItems.length === 0) {
         alert('No hay productos en tu carrito. Por favor, añade al menos un producto para continuar.');
         return;
       }
-      this.$router.push({ name: 'MetodoPago' });
-    },
-    async fetchExchangeRate() {
+
+      // TODO: Validar información del cliente si es necesario
+      if (!this.isLoggedIn && !this.customerEmail) {
+        alert('Por favor ingresa tu correo electrónico para continuar.');
+        return;
+      }
+
+      // TODO: Preparar datos para la orden
+      const orderData = {
+        items: this.cartItems.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          price: item.price,
+          discount: item.discountPercentage || 0
+        })),
+        subtotal: this.subtotal,
+        taxes: this.taxes,
+        shipping: this.shippingCost,
+        total: this.totalWithDiscount,
+        customerEmail: this.customerEmail,
+        shippingMethod: this.selectedShipping.name || 'Estándar'
+      };
+
       try {
-        const apiKey = '486f0d2b81e7c30a7340fb24'; // Tu clave API de ExchangeRate-API
-        const response = await axios.get(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`);
-        this.exchangeRate = response.data.conversion_rates.VES; // Obtener la tasa de cambio USD a VES
+        // TODO: Enviar orden al backend
+        // const response = await axios.post('/api/orders', orderData);
+        // console.log('Orden creada:', response.data);
+        
+        // Redirigir a método de pago
+        this.$router.push({ name: 'MetodoPago', state: { orderData } });
       } catch (error) {
-        console.error('Error al obtener el tipo de cambio:', error);
-        this.exchangeRate = 66.78; // Valor por defecto en caso de error
+        console.error('Error al crear la orden:', error);
+        alert('Ocurrió un error al procesar tu pedido. Por favor intenta nuevamente.');
       }
     }
   },
   mounted() {
-    this.fetchExchangeRate(); // Llamar a la API al cargar el componente
-    
-    // Para probar el mensaje de carrito vacío, dejamos cartItems vacío
-    // Si quieres ver el carrito con productos, descomenta las siguientes líneas:
-    
-    this.cartItems = [
-      { 
-        id: 1, 
-        name: 'Producto A', 
-        price: 1000, 
-        quantity: 1, 
-        image: 'https://via.placeholder.com/120',
-        discountPercentage: 10 
-      },
-      { 
-        id: 2, 
-        name: 'Producto B', 
-        price: 2000, 
-        quantity: 2, 
-        image: 'https://via.placeholder.com/120?text=Producto+B', 
-        discountPercentage: 5 
-      }
-    ];
-    
+    // TODO: Inicializar valores necesarios
+    this.fetchExchangeRate();
+    if (this.shippingOptions.length > 0) {
+      this.selectedShipping = this.shippingOptions[0];
+      this.shippingCost = this.selectedShipping.cost;
+    }
   }
 };
 </script>

@@ -46,7 +46,9 @@ export default createStore({
       itemsPerPage: 10
     },
     productosDestacados: [],
-    productosConDescuento: []
+    productosConDescuento: [],
+    cartItems: JSON.parse(localStorage.getItem('cart')) || [],
+    exchangeRate: 36.5 // Tasa de cambio por defecto
   },
   
   getters: {
@@ -59,6 +61,27 @@ export default createStore({
     estaAutenticado: (state) => !!state.token,
     productosDestacados: (state) => state.productosDestacados,
     productosConDescuento: (state) => state.productosConDescuento,
+    
+    // Getters para el carrito
+    cartItemCount: (state) => {
+      return state.cartItems.reduce((count, item) => count + item.quantity, 0);
+    },
+    cartTotal: (state) => {
+      return state.cartItems.reduce((total, item) => {
+        return total + (item.price * item.quantity);
+      }, 0);
+    },
+    cartTotalWithDiscount: (state) => {
+      return state.cartItems.reduce((total, item) => {
+        const discount = (item.price * item.quantity * (item.discountPercentage || 0)) / 100;
+        return total + (item.price * item.quantity) - discount;
+      }, 0);
+    },
+    cartTotalDiscount: (state) => {
+      return state.cartItems.reduce((total, item) => {
+        return total + ((item.price * item.quantity * (item.discountPercentage || 0)) / 100);
+      }, 0);
+    },
     
     productosPorCategoria: (state) => (categoriaId) => {
       return state.productos.filter(p => p.categoria?.id === categoriaId);
@@ -132,6 +155,44 @@ export default createStore({
 
     SET_PRODUCTOS_CON_DESCUENTO(state, productos) {
       state.productosConDescuento = productos;
+    },
+
+    // Mutaciones para el carrito
+    ADD_TO_CART(state, { product, quantity }) {
+      const existingItem = state.cartItems.find(item => item.id === product.id);
+      
+      if (existingItem) {
+        existingItem.quantity += quantity;
+      } else {
+        state.cartItems.push({
+          ...product,
+          quantity,
+          discountPercentage: product.descuento_aplicado || 0
+        });
+      }
+      localStorage.setItem('cart', JSON.stringify(state.cartItems));
+    },
+    
+    REMOVE_FROM_CART(state, productId) {
+      state.cartItems = state.cartItems.filter(item => item.id !== productId);
+      localStorage.setItem('cart', JSON.stringify(state.cartItems));
+    },
+    
+    UPDATE_CART_ITEM_QUANTITY(state, { productId, quantity }) {
+      const item = state.cartItems.find(item => item.id === productId);
+      if (item) {
+        item.quantity = quantity;
+      }
+      localStorage.setItem('cart', JSON.stringify(state.cartItems));
+    },
+    
+    CLEAR_CART(state) {
+      state.cartItems = [];
+      localStorage.removeItem('cart');
+    },
+
+    SET_EXCHANGE_RATE(state, rate) {
+      state.exchangeRate = rate;
     }
   },
   
@@ -187,26 +248,25 @@ export default createStore({
           } 
         });
 
-// Dentro de cargarProductos, modifica:
-const productos = (data.results || []).map(producto => ({
-  ...producto,
-  imagen: construirUrlCompleta(producto.imagen), // <-- Aplicar aquí
-  precio: Number(producto.precio).toFixed(2) // Opcional: formatear precio
-}));
-commit('SET_PRODUCTOS', productos);
+        const productos = (data.results || []).map(producto => ({
+          ...producto,
+          imagen: construirUrlCompleta(producto.imagen),
+          precio: Number(producto.precio)
+        }));
+        
+        commit('SET_PRODUCTOS', productos);
         commit('SET_PAGINACION', {
           currentPage: data.current_page || 1,
           totalPages: data.total_pages || 1,
           totalItems: data.total_items || data.count || 0
         });
 
-        // Seleccionar productos destacados (4 aleatorios)
-        const destacados = [...productos] // Ya tienen la imagen procesada
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 4);
+        // Productos destacados
+        const destacados = [...productos]
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 4);
       
-        
-        // Aplicar descuentos aleatorios
+        // Productos con descuento
         const conDescuento = [...productos]
           .sort(() => 0.5 - Math.random())
           .slice(0, 4)
@@ -312,6 +372,44 @@ commit('SET_PRODUCTOS', productos);
         throw error;
       } finally {
         commit('SET_CARGANDO', false);
+      }
+    },
+
+    async agregarProductoAlCarrito({ commit, state }, { productoId, cantidad }) {
+      try {
+        // Buscar el producto en el cache o cargarlo si no está
+        let producto = state.productosCache[productoId];
+        
+        if (!producto) {
+          const { data } = await axiosInstance.get(`productos/${productoId}/`);
+          producto = {
+            id: data.id,
+            name: data.nombre,
+            price: data.precio,
+            image: data.imagen ? construirUrlCompleta(data.imagen) : null,
+            discountPercentage: data.descuento_aplicado || 0
+          };
+          commit('CACHE_PRODUCTO', producto);
+        }
+        
+        commit('ADD_TO_CART', { product: producto, quantity: cantidad });
+        return true;
+      } catch (error) {
+        const errorMessage = error.response?.data?.message || 
+                          'Error al agregar producto al carrito';
+        commit('SET_ERROR', errorMessage);
+        throw error;
+      }
+    },
+
+    async fetchExchangeRate({ commit }) {
+      try {
+        const apiKey = '486f0d2b81e7c30a7340fb24'; // Tu clave API de ExchangeRate-API
+        const response = await axios.get(`https://v6.exchangerate-api.com/v6/${apiKey}/latest/USD`);
+        commit('SET_EXCHANGE_RATE', response.data.conversion_rates.VES);
+      } catch (error) {
+        console.error('Error al obtener el tipo de cambio:', error);
+        commit('SET_EXCHANGE_RATE', 36.5); // Valor por defecto en caso de error
       }
     }
   }
