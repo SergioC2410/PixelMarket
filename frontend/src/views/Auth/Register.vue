@@ -208,6 +208,8 @@
 </template>
 
 <script>
+import authService from '@/api/auth'; // Importamos el servicio de autenticación
+
 export default {
   name: 'RegisterView',
   data() {
@@ -227,7 +229,7 @@ export default {
       isLoading: false,
       showRequirements: false,
       
-      // Elementos del fondo interactivo
+      // Elementos del fondo interactivo (se mantienen igual)
       floatingProducts: Array(10).fill().map((_, i) => ({
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
@@ -254,8 +256,8 @@ export default {
         color: `hsl(${Math.random() * 60 + 200}, 70%, 60%)`,
         opacity: Math.random() * 0.5 + 0.2,
         speed: Math.random() * 0.5 + 0.2
-      }))
-    }
+      })),
+    };
   },
   computed: {
     requirements() {
@@ -276,7 +278,7 @@ export default {
     }
   },
   methods: {
-    // Métodos para el fondo interactivo
+    // Métodos para el fondo interactivo (se mantienen igual)
     getRandomProductImage(index) {
       const products = [
         'https://static.vecteezy.com/system/resources/previews/016/283/734/non_2x/smartphone-cartoon-style-vector.jpg',
@@ -368,7 +370,7 @@ export default {
       return true
     },
     
-    checkPasswordStrength() {
+    checkPasswordStrength() {   
       const requirementsMet = [
         this.hasMinLength,
         this.hasUppercase,
@@ -440,47 +442,103 @@ export default {
       return true
     },
     
-    handleRegister() {
-      if (!this.validateForm()) {
-        this.hasError = true;
-        setTimeout(() => {
-          this.hasError = false;
-        }, 1000);
-        return;
-      }
+    async handleRegister() {
+  if (!this.validateForm()) {
+    this.hasError = true;
+    setTimeout(() => {
+      this.hasError = false;
+    }, 1000);
+    return;
+  }
 
-      this.isLoading = true;
-      
-      // Simulación de registro
-      setTimeout(() => {
-        console.log('Datos de registro:', {
-          name: this.name,
-          lastname: this.lastname,
-          cedula: this.cedula,
-          email: this.email,
-          phone: this.phone,
-          password: this.password
-        });
+  this.isLoading = true;
+  
+  try {
+    // Ajustamos los nombres de campos para que coincidan con el serializer del backend
+    const userData = {
+      email: this.email,
+      password: this.password,
+      password2: this.confirmPassword,  // El backend espera password2 para confirmación
+      first_name: this.name,       // El backend usa first_name en lugar de nombre
+      last_name: this.lastname,    // El backend usa last_name en lugar de apellido
+      telefono: this.phone,
+      cedula: this.cedula
+    };
 
-        this.$swal({
-          title: '¡Registro exitoso!',
-          text: 'Ahora puedes iniciar sesión con tus credenciales',
-          icon: 'success',
-          confirmButtonColor: '#047ffa',
-          showClass: {
-            popup: 'animate__animated animate__fadeInDown'
-          },
-          hideClass: {
-            popup: 'animate__animated animate__fadeOutUp'
-          }
-        }).then(() => {
-          this.$router.push('/login');
-        });
-        
-        this.isLoading = false;
-      }, 1500);
+    // Llamada al servicio de registro
+    const response = await authService.register(userData);
+    
+    // Si el registro es exitoso (código 201)
+    if (response.status === 201) {
+      this.$swal({
+        title: '¡Registro exitoso!',
+        text: 'Ahora puedes iniciar sesión con tus credenciales',
+        icon: 'success',
+        confirmButtonColor: '#047ffa',
+        showClass: {
+          popup: 'animate__animated animate__fadeInDown'
+        },
+        hideClass: {
+          popup: 'animate__animated animate__fadeOutUp'
+        }
+      }).then(() => {
+        this.$router.push('/login');
+      });
     }
-  },
+  } catch (error) {
+    console.error('Error en el registro:', error);
+    
+    // Manejo mejorado de errores
+    if (error.response) {
+      // Error 400 - Validación fallida
+      if (error.response.status === 400) {
+        const errorData = error.response.data;
+        
+        // Mapeamos los errores del backend a mensajes amigables
+        if (errorData.email) {
+          this.errorMessage = Array.isArray(errorData.email) 
+            ? errorData.email[0] 
+            : 'Este correo electrónico ya está registrado';
+        } 
+        else if (errorData.cedula) {
+          this.errorMessage = Array.isArray(errorData.cedula)
+            ? errorData.cedula[0]
+            : 'Esta cédula ya está registrada';
+        }
+        else if (errorData.telefono) {
+          this.errorMessage = 'Formato de teléfono inválido. Use +58XXXXXXXXXX';
+        }
+        else if (errorData.non_field_errors) {
+          this.errorMessage = errorData.non_field_errors[0];
+        }
+        else {
+          // Mostrar el primer error que encontremos
+          const firstErrorKey = Object.keys(errorData)[0];
+          this.errorMessage = Array.isArray(errorData[firstErrorKey])
+            ? errorData[firstErrorKey][0]
+            : 'Error en los datos del formulario';
+        }
+      } 
+      // Error 500 - Problema del servidor
+      else if (error.response.status >= 500) {
+        this.errorMessage = 'Error en el servidor. Por favor, inténtalo más tarde.';
+      }
+    } 
+    // Error de conexión
+    else if (error.request) {
+      this.errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
+    } 
+    // Otros errores
+    else {
+      this.errorMessage = 'Ocurrió un error inesperado.';
+    }
+    
+    this.hasError = true;
+  } finally {
+    this.isLoading = false;
+  }
+},
+    },
   mounted() {
     this.animateFloatingElements();
     window.addEventListener('resize', this.resetPositions);

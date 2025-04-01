@@ -1,113 +1,124 @@
-from django.contrib.auth import authenticate, login, logout
-from django.shortcuts import get_object_or_404
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate, login, logout  # Para autenticar y manejar la sesión del usuario
+from django.http import JsonResponse  # Para devolver respuestas en formato JSON
+from django.shortcuts import get_object_or_404  # Para obtener un objeto o devolver un error 404 si no existe
+
+# Importamos herramientas de Django REST Framework (DRF)
+from rest_framework.decorators import api_view, permission_classes  # Para definir vistas de API y proteger rutas
+from rest_framework.permissions import IsAuthenticated  # Para restringir el acceso a usuarios autenticados
+from rest_framework.response import Response  # Para devolver respuestas en formato JSON
+from .serializers import UsuarioBaseSerializer, UsuarioRegistroSerializer, UsuarioActualizacionSerializer   # Importamos el serializador para el modelo Usuario
+
+# Importamos JWT (JSON Web Tokens) para la autenticación
+from rest_framework_simplejwt.tokens import RefreshToken  # Para generar tokens JWT
+
+# Importamos el modelo de usuario personalizado
+from .models import Usuario  # Importamos el modelo Usuario definido en models.py
+
 from .models import Usuario, Ubicacion, MetodoPago
 from .serializers import (
     UsuarioBaseSerializer,
     UsuarioRegistroSerializer,
     UsuarioActualizacionSerializer,
-    UsuarioDetalleSerializer,
     UbicacionSerializer,
     MetodoPagoSerializer
 )
 from .permissions import EsPropietario
 
-# ----------------------------
-# Vistas de Autenticación (Mejoradas)
-# ----------------------------
 @api_view(['POST'])
 def registro_usuario(request):
-    """Registro de usuario con manejo de errores detallado"""
     serializer = UsuarioRegistroSerializer(data=request.data)
     if serializer.is_valid():
-        usuario = serializer.save()
-        refresh = RefreshToken.for_user(usuario)
-        return Response({
-            'mensaje': 'Registro exitoso',
-            'usuario': UsuarioBaseSerializer(usuario).data,
-            'tokens': {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            }
-        }, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save()
+        return Response({'mensaje': 'Usuario registrado exitosamente'}, status=201)
+    return Response(serializer.errors, status=400)
 
+# Vista para iniciar sesión
 @api_view(['POST'])
 def iniciar_sesion(request):
-    """Inicio de sesión con tokens JWT"""
-    email = request.data.get('email')
-    password = request.data.get('password')
-    
-    if not email or not password:
-        return Response(
-            {'error': 'Se requieren email y contraseña'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
-    usuario = authenticate(request, email=email, password=password)
-    if not usuario:
-        return Response(
-            {'error': 'Credenciales inválidas'},
-            status=status.HTTP_401_UNAUTHORIZED
-        )
-    
-    login(request, usuario)
-    refresh = RefreshToken.for_user(usuario)
-    return Response({
-        'mensaje': 'Inicio de sesión exitoso',
-        'usuario': UsuarioBaseSerializer(usuario).data,
-        'tokens': {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-        }
-    })
+    """
+    Vista para iniciar sesión.
+    """
+    try:
+        data = request.data  # Obtenemos los datos de la solicitud
+        email = data.get('email')  # Obtenemos el nombre de usuario
+        password = data.get('password')  # Obtenemos la contraseña
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
+        usuario = authenticate(request, email=email, password=password)  # Autenticamos al usuario
+        if usuario is not None:  # Si la autenticación es exitosa
+            login(request, usuario)  # Iniciamos la sesión del usuario
+            refresh = RefreshToken.for_user(usuario)  # Generamos un token de actualización (refresh token)
+            return Response({
+                'mensaje': 'Inicio de sesión exitoso',
+                'refresh': str(refresh),  # Token de actualización
+                'access': str(refresh.access_token),  # Token de acceso
+            }, status=200)  # Devolvemos una respuesta de éxito con los tokens
+        else:
+            return Response({'error': 'Credenciales inválidas'}, status=401)  # Devolvemos un error si las credenciales son inválidas
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)  # Devolvemos un error genérico si ocurre una excepción
+    
+
+# Vista para cerrar sesión
+@api_view(['POST'])  # Solo permite solicitudes POST
+@permission_classes([IsAuthenticated])  # Solo usuarios autenticados pueden acceder a esta vista
 def cerrar_sesion(request):
-    """Cierre de sesión con JWT"""
-    logout(request)
-    return Response(
-        {'mensaje': 'Sesión cerrada exitosamente'},
-        status=status.HTTP_200_OK
-    )
+    """
+    Vista para cerrar sesión. Solo usuarios autenticados pueden cerrar sesión.
+    """
+    logout(request)  # Cerramos la sesión del usuario
+    return JsonResponse({'mensaje': 'Sesión cerrada exitosamente'}, status=200)  # Devolvemos una respuesta de éxito
 
-# ----------------------------
-# Vistas de Perfil (Mejoradas)
-# ----------------------------
+
+# Vista para obtener la información del usuario autenticado
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def obtener_perfil_completo(request):
-    """Obtiene todos los datos del usuario incluyendo ubicación y métodos de pago"""
-    usuario = request.user
-    serializer = UsuarioDetalleSerializer(usuario)
-    return Response(serializer.data)
+    """
+    Vista para obtener la información del usuario autenticado.
+    """
+    usuario = request.user  # Obtenemos el usuario autenticado
+    serializer = UsuarioBaseSerializer(usuario)  # Usamos UsuarioBaseSerializer
+    
+    return Response(serializer.data, status=200)
+
 
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def actualizar_perfil(request):
-    """Actualización parcial del perfil"""
-    usuario = request.user
+    usuario = request.user  # Usuario autenticado
     serializer = UsuarioActualizacionSerializer(
         instance=usuario,
         data=request.data,
-        partial=True
+        partial=True  # Permite actualización parcial
     )
+    
     if serializer.is_valid():
-        serializer.save()
-        return Response(
-            {'mensaje': 'Perfil actualizado', 'usuario': serializer.data},
-            status=status.HTTP_200_OK
-        )
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save()  # Guarda solo los campos permitidos
+        return Response({'mensaje': 'Datos actualizados correctamente'})
+    
+    return Response(serializer.errors, status=400)
 
-# ----------------------------
-# Vistas de Ubicación
-# ----------------------------
+
+@api_view(['DELETE'])  # Solo permite solicitudes DELETE
+@permission_classes([IsAuthenticated])  # Solo usuarios autenticados pueden acceder a esta vista
+def eliminar_cuenta(request, user_id):
+    """
+    Vista para eliminar un usuario.
+    Solo usuarios autenticados pueden eliminar su propia cuenta.
+    """
+    try:
+        usuario = get_object_or_404(Usuario, id=user_id)  # Obtenemos el usuario que se desea eliminar
+
+        if request.user != usuario:  # Verificamos que el usuario autenticado sea el mismo que se desea eliminar
+            return JsonResponse({'error': 'No tienes permiso para eliminar este usuario'}, status=403)  # Devolvemos un error si no tiene permiso
+
+        usuario.delete()  # Eliminamos el usuario de la base de datos
+
+        return JsonResponse({'mensaje': 'Usuario eliminado exitosamente'}, status=200)  # Devolvemos una respuesta de éxito
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)  # Devolvemos un error genérico si ocurre una excepción
+    
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def gestionar_ubicacion(request):
@@ -176,17 +187,3 @@ def detalle_metodo_pago(request, pk):
             {'mensaje': 'Método de pago eliminado'},
             status=status.HTTP_204_NO_CONTENT
         )
-
-# ----------------------------
-# Vista de Eliminación de Cuenta
-# ----------------------------
-@api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
-def eliminar_cuenta(request):
-    """Elimina la cuenta del usuario autenticado"""
-    usuario = request.user
-    usuario.delete()
-    return Response(
-        {'mensaje': 'Cuenta eliminada exitosamente'},
-        status=status.HTTP_204_NO_CONTENT
-    )

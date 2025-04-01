@@ -112,8 +112,7 @@ export default {
         { value: 'precio-desc', text: 'Precio: Mayor a Menor' },
         { value: 'nombre-asc', text: 'Nombre: A-Z' },
         { value: 'nombre-desc', text: 'Nombre: Z-A' }
-      ],
-      paramsFiltro: {}
+      ]
     };
   },
   computed: {
@@ -143,13 +142,15 @@ export default {
         const busquedaLower = this.busqueda.toLowerCase();
         productos = productos.filter(p =>
           p.nombre.toLowerCase().includes(busquedaLower) ||
-          p.descripcion.toLowerCase().includes(busquedaLower)
+          (p.descripcion && p.descripcion.toLowerCase().includes(busquedaLower))
         );
       }
 
       // Filtro por categoría
       if (this.filtroCategoria) {
-        productos = productos.filter(p => p.categoria.id === this.filtroCategoria);
+        productos = productos.filter(p => 
+          p.categoria && p.categoria.id === this.filtroCategoria
+        );
       }
 
       // Filtro por precio
@@ -163,16 +164,19 @@ export default {
     },
 
     productosOrdenados() {
-      if (this.filtroOrden === 'precio-asc') {
-        return [...this.productosFiltrados].sort((a, b) => a.precio - b.precio);
-      } else if (this.filtroOrden === 'precio-desc') {
-        return [...this.productosFiltrados].sort((a, b) => b.precio - a.precio);
-      } else if (this.filtroOrden === 'nombre-asc') {
-        return [...this.productosFiltrados].sort((a, b) => a.nombre.localeCompare(b.nombre));
-      } else if (this.filtroOrden === 'nombre-desc') {
-        return [...this.productosFiltrados].sort((a, b) => b.nombre.localeCompare(a.nombre));
-      }
-      return this.productosFiltrados;
+      if (!this.filtroOrden) return this.productosFiltrados;
+      
+      const [campo, direccion] = this.filtroOrden.split('-');
+      const orden = direccion === 'asc' ? 1 : -1;
+      
+      return [...this.productosFiltrados].sort((a, b) => {
+        if (campo === 'precio') {
+          return (a.precio - b.precio) * orden;
+        } else if (campo === 'nombre') {
+          return a.nombre.localeCompare(b.nombre) * orden;
+        }
+        return 0;
+      });
     },
 
     totalProductos() {
@@ -195,30 +199,27 @@ export default {
     ...mapActions(['cargarProductos', 'cargarCategorias']),
 
     async filtrarProductos() {
-      this.paramsFiltro = {
+      // Solo enviamos parámetros de filtro, no de paginación
+      const params = {
         search: this.busqueda,
         categoria_id: this.filtroCategoria,
-        ordering: this.obtenerOrdenamiento(),
-        page: this.paginaActual
+        ordering: this.obtenerOrdenamiento()
       };
 
       if (this.filtroPrecio) {
         const [min, max] = this.filtroPrecio.split('-');
-        if (min) this.paramsFiltro.precio_min = min;
-        if (max) this.paramsFiltro.precio_max = max;
+        if (min) params.precio_min = min;
+        if (max) params.precio_max = max;
       }
 
-      await this.cargarProductos(this.paramsFiltro);
+      await this.cargarProductos(params);
+      this.paginaActual = 1; // Resetear a primera página al filtrar
     },
 
     obtenerOrdenamiento() {
-      switch (this.filtroOrden) {
-        case 'precio-asc': return 'precio';
-        case 'precio-desc': return '-precio';
-        case 'nombre-asc': return 'nombre';
-        case 'nombre-desc': return '-nombre';
-        default: return null;
-      }
+      if (!this.filtroOrden) return null;
+      const [campo, direccion] = this.filtroOrden.split('-');
+      return direccion === 'asc' ? campo : `-${campo}`;
     },
 
     cambiarCategoria() {
@@ -233,12 +234,12 @@ export default {
   async created() {
     await this.cargarCategorias();
     await this.filtrarProductos();
-    console.log("Datos del primer producto:", this.todosProductos[0]) 
+    
     // Si viene categoría por URL
     if (this.$route.query.categoria) {
       this.filtroCategoria = parseInt(this.$route.query.categoria);
+      await this.filtrarProductos();
     }
-
   },
   watch: {
     '$route.query.categoria'(newVal) {

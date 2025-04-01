@@ -118,7 +118,7 @@ export default createStore({
         currentPage: currentPage || 1,
         totalPages: totalPages || 1,
         totalItems: totalItems || 0,
-        itemsPerPage: state.paginacion.itemsPerPage
+        itemsPerPage: 10 // Valor fijo para la paginación del cliente
       };
     },
 
@@ -132,6 +132,10 @@ export default createStore({
 
     SET_PRODUCTOS_CON_DESCUENTO(state, productos) {
       state.productosConDescuento = productos;
+    },
+
+    AGREGAR_PRODUCTOS(state, nuevosProductos) {
+      state.productos = [...state.productos, ...nuevosProductos];
     }
   },
   
@@ -179,34 +183,43 @@ export default createStore({
       commit('SET_ERROR', null);
       
       try {
+        // Obtenemos todos los productos sin paginación del servidor
         const { data } = await axiosInstance.get('productos/', { 
           params: {
-            page: params.page || 1,
-            page_size: params.itemsPerPage || state.paginacion.itemsPerPage,
-            ...params
+            ...params,
+            page_size: 1000 // Número grande para obtener todos los productos
           } 
         });
 
-// Dentro de cargarProductos, modifica:
-const productos = (data.results || []).map(producto => ({
-  ...producto,
-  imagen: construirUrlCompleta(producto.imagen), // <-- Aplicar aquí
-  precio: Number(producto.precio).toFixed(2) // Opcional: formatear precio
-}));
-commit('SET_PRODUCTOS', productos);
+        // Manejar tanto array directo como respuesta paginada
+        const productosArray = Array.isArray(data) ? data : (data.results || []);
+        
+        // Procesar productos: construir URLs de imágenes y normalizar datos
+        const productos = productosArray.map(producto => ({
+          ...producto,
+          imagen: construirUrlCompleta(producto.imagen),
+          precio: Number(producto.precio),
+          // Normalizar categoría (puede venir como objeto o solo ID)
+          categoria: producto.categoria && typeof producto.categoria === 'object' 
+            ? producto.categoria 
+            : { id: producto.categoria }
+        }));
+
+        commit('SET_PRODUCTOS', productos);
+        
+        // Actualizar estado de paginación (ahora es paginación del cliente)
         commit('SET_PAGINACION', {
-          currentPage: data.current_page || 1,
-          totalPages: data.total_pages || 1,
-          totalItems: data.total_items || data.count || 0
+          currentPage: 1,
+          totalPages: Math.ceil(productos.length / state.paginacion.itemsPerPage),
+          totalItems: productos.length
         });
 
         // Seleccionar productos destacados (4 aleatorios)
-        const destacados = [...productos] // Ya tienen la imagen procesada
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 4);
-      
+        const destacados = [...productos]
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 4);
         
-        // Aplicar descuentos aleatorios
+        // Productos con descuento (aleatorios con descuento simulado)
         const conDescuento = [...productos]
           .sort(() => 0.5 - Math.random())
           .slice(0, 4)
@@ -223,9 +236,11 @@ commit('SET_PRODUCTOS', productos);
         commit('SET_PRODUCTOS_DESTACADOS', destacados);
         commit('SET_PRODUCTOS_CON_DESCUENTO', conDescuento);
 
+        // Cachear todos los productos
         productos.forEach(producto => {
           commit('CACHE_PRODUCTO', producto);
         });
+
       } catch (error) {
         const errorMessage = error.response?.data?.message || 
                           error.response?.data?.detail || 
@@ -239,6 +254,7 @@ commit('SET_PRODUCTOS', productos);
     },
 
     async cargarProductoPorId({ commit, state }, productoId) {
+      // Verificar caché primero
       if (state.productosCache[productoId]) {
         commit('SET_PRODUCTO_ACTUAL', state.productosCache[productoId]);
         return;
@@ -250,6 +266,7 @@ commit('SET_PRODUCTOS', productos);
       try {
         const { data } = await axiosInstance.get(`productos/${productoId}/`);
         
+        // Procesar imágenes del producto
         const productoConImagenes = {
           ...data,
           imagen_url: data.imagen ? construirUrlCompleta(data.imagen) : null,
@@ -312,6 +329,44 @@ commit('SET_PRODUCTOS', productos);
         throw error;
       } finally {
         commit('SET_CARGANDO', false);
+      }
+    },
+
+    async cargarMasProductos({ commit, state }, params = {}) {
+      try {
+        const nextPage = Math.floor(state.productos.length / state.paginacion.itemsPerPage) + 1;
+        const { data } = await axiosInstance.get('productos/', {
+          params: {
+            ...params,
+            page: nextPage,
+            page_size: state.paginacion.itemsPerPage
+          }
+        });
+
+        const nuevosProductos = (data.results || data).map(p => ({
+          ...p,
+          imagen: construirUrlCompleta(p.imagen),
+          precio: Number(p.precio),
+          categoria: p.categoria && typeof p.categoria === 'object' 
+            ? p.categoria 
+            : { id: p.categoria }
+        }));
+
+        commit('AGREGAR_PRODUCTOS', nuevosProductos);
+        commit('SET_PAGINACION', {
+          currentPage: nextPage,
+          totalPages: data.total_pages || Math.ceil((state.productos.length + nuevosProductos.length) / state.paginacion.itemsPerPage),
+          totalItems: data.count || (state.productos.length + nuevosProductos.length)
+        });
+
+        return nuevosProductos;
+      } catch (error) {
+        const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.detail || 
+                          error.message || 
+                          'Error al cargar más productos';
+        commit('SET_ERROR', errorMessage);
+        throw error;
       }
     }
   }
