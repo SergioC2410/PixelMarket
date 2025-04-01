@@ -24,12 +24,25 @@ def crear_pedido(request):
             data = request.data
             usuario_id = data.get('usuario_id')
             items = data.get('items', [])
+            metodo_entrega = data.get('metodo_entrega', 'domicilio')
+            direccion_entrega = data.get('direccion_entrega', '')
 
             if not items:
-                return Response({'error': 'El pedido no puede estar vacío'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'El pedido debe contener al menos un ítem.'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
 
-            # Crear el pedido
-            pedido = Pedido.objects.create(usuario_id=usuario_id)
+            # Validar método de entrega
+            if metodo_entrega == 'domicilio' and not direccion_entrega:
+                return Response({'error': 'Debe proporcionar una dirección de entrega para envío a domicilio.'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
+
+            # Crear el pedido con estado inicial "pendiente_pago"
+            pedido = Pedido.objects.create(
+                usuario_id=usuario_id,
+                estado='pendiente_pago',
+                metodo_entrega=metodo_entrega,
+                direccion_entrega=direccion_entrega if metodo_entrega == 'domicilio' else None
+            )
 
             # Procesar cada ítem del pedido
             for item in items:
@@ -40,11 +53,13 @@ def crear_pedido(request):
                     producto = Producto.objects.get(id=producto_id)
                 except Producto.DoesNotExist:
                     pedido.delete()  # Eliminar el pedido si el producto no existe
-                    return Response({'error': f'Producto con ID {producto_id} no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+                    return Response({'error': f'Producto con ID {producto_id} no encontrado.'}, 
+                                  status=status.HTTP_404_NOT_FOUND)
 
                 if cantidad > producto.stock:
                     pedido.delete()  # Eliminar el pedido si no hay suficiente stock
-                    return Response({'error': f'No hay suficiente stock para {producto.nombre}. Stock disponible: {producto.stock}'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'error': f'No hay suficiente stock para {producto.nombre}. Stock disponible: {producto.stock}'}, 
+                                  status=status.HTTP_400_BAD_REQUEST)
 
                 # Crear el ítem de pedido
                 ItemPedido.objects.create(
@@ -57,14 +72,18 @@ def crear_pedido(request):
             # Calcular el total del pedido
             pedido.calcular_total()
 
-            return Response({'mensaje': 'Pedido creado exitosamente', 'pedido_id': pedido.id}, status=status.HTTP_201_CREATED)
+            return Response({
+                'mensaje': 'Pedido creado exitosamente.', 
+                'pedido_id': pedido.id,
+                'estado': pedido.estado
+            }, status=status.HTTP_201_CREATED)
 
         except ValidationError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': f'Error inesperado: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    return Response({'error': 'Método no permitido'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    return Response({'error': 'Método no permitido.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -76,14 +95,15 @@ def listar_pedidos(request):
         usuario_id = request.query_params.get('usuario_id')
 
         if not usuario_id:
-            return Response({'error': 'Se requiere el ID del usuario'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Se requiere el ID del usuario.'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
 
         pedidos = Pedido.objects.filter(usuario_id=usuario_id).select_related('usuario').prefetch_related('items')
         serializer = PedidoSerializer(pedidos, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    return Response({'error': 'Método no permitido'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    return Response({'error': 'Método no permitido.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -123,8 +143,51 @@ def cancelar_pedido(request, pedido_id):
     """
     try:
         pedido = Pedido.objects.get(id=pedido_id)
-        pedido.estado = 'cancelado'  # Asegúrate de que el campo se llame 'estado' en tu modelo
+        
+        if pedido.estado == 'reembolsado':
+            return Response({'error': 'No se puede cancelar un pedido ya reembolsado.'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+            
+        pedido.estado = 'cancelado'
         pedido.save()
-        return Response({'mensaje': 'Pedido cancelado exitosamente'}, status=status.HTTP_200_OK)
+        return Response({'mensaje': 'Pedido cancelado exitosamente.'}, status=status.HTTP_200_OK)
+    except Pedido.DoesNotExist:
+        return Response({'error': PEDIDO_NO_ENCONTRADO}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def marcar_como_pagado(request, pedido_id):
+    """
+    Vista para marcar un pedido como pagado.
+    """
+    try:
+        pedido = Pedido.objects.get(id=pedido_id)
+        
+        if pedido.estado != 'pendiente_pago':
+            return Response({'error': 'Solo se pueden marcar como pagados pedidos con estado "Pendiente de Pago".'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+            
+        pedido.estado = 'pagado'
+        pedido.save()
+        return Response({'mensaje': 'Pedido marcado como pagado exitosamente.'}, status=status.HTTP_200_OK)
+    except Pedido.DoesNotExist:
+        return Response({'error': PEDIDO_NO_ENCONTRADO}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reembolsar_pedido(request, pedido_id):
+    """
+    Vista para reembolsar un pedido.
+    """
+    try:
+        pedido = Pedido.objects.get(id=pedido_id)
+        
+        if pedido.estado not in ['cancelado', 'pagado']:
+            return Response({'error': 'Solo se pueden reembolsar pedidos cancelados o pagados.'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+            
+        pedido.estado = 'reembolsado'
+        pedido.save()
+        return Response({'mensaje': 'Pedido reembolsado exitosamente.'}, status=status.HTTP_200_OK)
     except Pedido.DoesNotExist:
         return Response({'error': PEDIDO_NO_ENCONTRADO}, status=status.HTTP_404_NOT_FOUND)
