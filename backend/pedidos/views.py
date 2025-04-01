@@ -27,49 +27,16 @@ def crear_pedido(request):
             metodo_entrega = data.get('metodo_entrega', 'domicilio')
             direccion_entrega = data.get('direccion_entrega', '')
 
-            if not items:
-                return Response({'error': 'El pedido debe contener al menos un ítem.'}, 
-                              status=status.HTTP_400_BAD_REQUEST)
+            error_response = validar_datos_pedido(items, metodo_entrega, direccion_entrega)
+            if error_response:
+                return error_response
 
-            # Validar método de entrega
-            if metodo_entrega == 'domicilio' and not direccion_entrega:
-                return Response({'error': 'Debe proporcionar una dirección de entrega para envío a domicilio.'}, 
-                              status=status.HTTP_400_BAD_REQUEST)
+            pedido = crear_pedido_base(usuario_id, metodo_entrega, direccion_entrega)
 
-            # Crear el pedido con estado inicial "pendiente_pago"
-            pedido = Pedido.objects.create(
-                usuario_id=usuario_id,
-                estado='pendiente_pago',
-                metodo_entrega=metodo_entrega,
-                direccion_entrega=direccion_entrega if metodo_entrega == 'domicilio' else None
-            )
+            error_response = procesar_items_pedido(pedido, items)
+            if error_response:
+                return error_response
 
-            # Procesar cada ítem del pedido
-            for item in items:
-                producto_id = item.get('producto_id')
-                cantidad = item.get('cantidad', 1)
-
-                try:
-                    producto = Producto.objects.get(id=producto_id)
-                except Producto.DoesNotExist:
-                    pedido.delete()  # Eliminar el pedido si el producto no existe
-                    return Response({'error': f'Producto con ID {producto_id} no encontrado.'}, 
-                                  status=status.HTTP_404_NOT_FOUND)
-
-                if cantidad > producto.stock:
-                    pedido.delete()  # Eliminar el pedido si no hay suficiente stock
-                    return Response({'error': f'No hay suficiente stock para {producto.nombre}. Stock disponible: {producto.stock}'}, 
-                                  status=status.HTTP_400_BAD_REQUEST)
-
-                # Crear el ítem de pedido
-                ItemPedido.objects.create(
-                    pedido=pedido,
-                    producto=producto,
-                    cantidad=cantidad,
-                    precio_unitario=producto.precio
-                )
-
-            # Calcular el total del pedido
             pedido.calcular_total()
 
             return Response({
@@ -84,6 +51,52 @@ def crear_pedido(request):
             return Response({'error': f'Error inesperado: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return Response({'error': 'Método no permitido.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+def validar_datos_pedido(items, metodo_entrega, direccion_entrega):
+    if not items:
+        return Response({'error': 'El pedido debe contener al menos un ítem.'}, 
+                        status=status.HTTP_400_BAD_REQUEST)
+
+    if metodo_entrega == 'domicilio' and not direccion_entrega:
+        return Response({'error': 'Debe proporcionar una dirección de entrega para envío a domicilio.'}, 
+                        status=status.HTTP_400_BAD_REQUEST)
+    return None
+
+
+def crear_pedido_base(usuario_id, metodo_entrega, direccion_entrega):
+    return Pedido.objects.create(
+        usuario_id=usuario_id,
+        estado='pendiente_pago',
+        metodo_entrega=metodo_entrega,
+        direccion_entrega=direccion_entrega if metodo_entrega == 'domicilio' else None
+    )
+
+
+def procesar_items_pedido(pedido, items):
+    for item in items:
+        producto_id = item.get('producto_id')
+        cantidad = item.get('cantidad', 1)
+
+        try:
+            producto = Producto.objects.get(id=producto_id)
+        except Producto.DoesNotExist:
+            pedido.delete()
+            return Response({'error': f'Producto con ID {producto_id} no encontrado.'}, 
+                            status=status.HTTP_404_NOT_FOUND)
+
+        if cantidad > producto.stock:
+            pedido.delete()
+            return Response({'error': f'No hay suficiente stock para {producto.nombre}. Stock disponible: {producto.stock}'}, 
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        ItemPedido.objects.create(
+            pedido=pedido,
+            producto=producto,
+            cantidad=cantidad,
+            precio_unitario=producto.precio
+        )
+    return None
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

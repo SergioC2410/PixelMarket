@@ -27,6 +27,7 @@ urlpatterns = [
     
     # Nueva ruta para reembolsar
     path('pedidos/<int:pedido_id>/reembolsar/', views.reembolsar_pedido, name='reembolsar_pedido'),
+
 ]
 
 # Agregamos las rutas generadas por el router
