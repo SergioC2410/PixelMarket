@@ -109,13 +109,13 @@ class FiltroFacturasSerializer(serializers.Serializer):
     pedido_id = serializers.IntegerField(required=False)
     estado = serializers.ChoiceField(
         required=False,
-        choices=Factura.ESTADOS,
+        choices=Factura.EstadoFactura.choices,
         help_text="Filtrar por estado (P: Pagada, N: Pendiente, A: Anulada)"
     )
 
 class CambiarEstadoFacturaSerializer(serializers.Serializer):
     estado = serializers.ChoiceField(
-        choices=Factura.ESTADOS,
+        choices=Factura.EstadoFactura.choices,
         required=True,
         help_text="Nuevo estado de la factura (P: Pagada, N: Pendiente, A: Anulada)"
     )
