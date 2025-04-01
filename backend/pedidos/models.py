@@ -11,20 +11,31 @@ class Pedido(models.Model):
     Un pedido está asociado a un usuario (comprador) y tiene varios ítems.
     """
     ESTADOS = (
+        ('pendiente_pago', 'Pendiente de Pago'),
+        ('pagado', 'Pagado'),
         ('pendiente', 'Pendiente'),
         ('completado', 'Completado'),
         ('cancelado', 'Cancelado'),
+        ('reembolsado', 'Reembolsado'),
     )
+    
+    METODOS_ENTREGA = (
+        ('domicilio', 'A domicilio'),
+        ('retirar', 'Retirar en local'),
+    )
+    
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='pedidos')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
-    estado = models.CharField(max_length=10, choices=ESTADOS, default='pendiente')
+    estado = models.CharField(max_length=15, choices=ESTADOS, default='pendiente_pago')
+    metodo_entrega = models.CharField(max_length=10, choices=METODOS_ENTREGA, default='domicilio')
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    direccion_entrega = models.TextField(blank=True, null=True)  # Solo necesario si es a domicilio
 
     def __str__(self):
         """
         Representación en cadena del pedido (aparece en el panel de administración).
         """
-        return f"Pedido #{self.id} - {self.usuario.username}"
+        return f"Pedido #{self.id} - {self.usuario.username} ({self.estado})"
 
     def calcular_total(self):
         """
@@ -36,9 +47,13 @@ class Pedido(models.Model):
     def clean(self):
         """
         Valida que el pedido tenga al menos un ítem antes de guardarlo.
+        Valida también que si el método de entrega es a domicilio, haya una dirección.
         """
         if self.items.count() == 0:
-            raise ValidationError("Un pedido no puede estar vacío.")
+            raise ValidationError("El pedido debe contener al menos un ítem.")
+            
+        if self.metodo_entrega == 'domicilio' and not self.direccion_entrega:
+            raise ValidationError("Debe proporcionar una dirección de entrega para envío a domicilio.")
 
     class Meta:
         """
